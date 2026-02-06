@@ -1,22 +1,24 @@
 [project]
-name = "update_dns"
+name = "cloudflare-verified-ddns"
 version = "0.1.0"
-description = "Dynamic DNS updater for VPN using CloudFlare API"
+description = "Lightweight, reliable Dynamic DNS updater for Cloudflare"
 authors = [
     {name = "Brian Kaewell", email = "briankaewell@gmail.com"}
 ]
 license = {text = "MIT"}
 readme = "README.md"
-packages = [{ include = "update_dns", from = "src" }]
 requires-python = ">=3.10, <4.0"
 dependencies = [
     "python-dotenv (>=1.1.1, <2.0.0)",
     "requests (>=2.32.5, <3.0.0)",
 ]
 
-#[tool.poetry.scripts]
-#Console script entry point
-#update-vpn-ddns = "update_vpn_ddns.__main__:main"
+packages = [
+    { include = "cloudflare-verified-ddns", from = "src" }
+]
+
+[project.scripts]
+cloudflare-verified-ddns = "cloudflare_verified_ddns.__main__:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0, <3.0.0"]
