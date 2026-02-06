@@ -1,39 +1,42 @@
-FROM python:3.12-alpine
+FROM python:3.13-alpine AS builder
 
 WORKDIR /app
 
-# Minimal system deps for alpine
+# Minimal deps (no ca-certificates/tzdata as tested)
 RUN apk add --no-cache \
-        ca-certificates \
-        tzdata \
-        #curl \                       # saves 8 MB
-    && update-ca-certificates \
     && rm -rf /var/cache/apk/*
 
-# Timezone (UTC default)
-ARG TZ=UTC
-ENV TZ=${TZ}
-RUN ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime \
-    && echo ${TZ} > /etc/timezone
-
-# Install deps
 COPY requirements.txt ./
-# #Build time: 4.7s/4.9s
-# RUN python -m venv /venv \
-#     && /venv/bin/pip install --no-cache-dir --upgrade pip \
-#     && /venv/bin/pip install --no-cache-dir -r requirements.txt \
-#     && rm -rf /root/.cache/pip
 
-#Build time: 3.5s (faster, no size savings now, 
-# but I think it will save in the future with subsequent builds/caching)
-# No need to upgrade pip, more aggressive pip cache cleanup
+# Create venv + install (pip will be in here temporarily)
 RUN python -m venv /venv \
     && /venv/bin/pip install --no-cache-dir -r requirements.txt \
-    && rm -rf /root/.cache/pip/* \    
+    && rm -rf /root/.cache/pip/* \
     && /venv/bin/pip cache purge || true
+
+# Final stage: copy only venv (without pip if we clean it)
+FROM python:3.13-alpine
+
+WORKDIR /app
+
+# Optional: minimal deps if needed (none here)
+# RUN apk add --no-cache ... && rm -rf /var/cache/apk/*
+
+# Copy venv from builder
+COPY --from=builder /venv /venv
 
 # App code
 COPY src ./src
+
+# Cleanup bytecode again (belt-and-suspenders)
+RUN find /venv -name '__pycache__' -type d -exec rm -rf {} + \
+    && find /venv -name '*.pyc' -delete \
+    && find /venv -name '*.pyo' -delete
+
+# Non-root (good practice)
+RUN addgroup -S app && adduser -S app -G app
+COPY --chown=app:app src ./src
+USER app
 
 ENV PATH="/venv/bin:$PATH" \
     PYTHONPATH="/app/src" \
@@ -41,3 +44,50 @@ ENV PATH="/venv/bin:$PATH" \
     PYTHONUNBUFFERED=1
 
 CMD ["python", "-m", "cloudflare_verified_ddns.__main__"]
+
+
+
+
+# FROM python:3.12-alpine
+
+# WORKDIR /app
+
+# # Minimal system deps for alpine
+# RUN apk add --no-cache \
+#         ca-certificates \
+#         tzdata \
+#         #curl \                       # saves 8 MB
+#     && update-ca-certificates \
+#     && rm -rf /var/cache/apk/*
+
+# # Timezone (UTC default)
+# ARG TZ=UTC
+# ENV TZ=${TZ}
+# RUN ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime \
+#     && echo ${TZ} > /etc/timezone
+
+# # Install deps
+# COPY requirements.txt ./
+# # #Build time: 4.7s/4.9s
+# # RUN python -m venv /venv \
+# #     && /venv/bin/pip install --no-cache-dir --upgrade pip \
+# #     && /venv/bin/pip install --no-cache-dir -r requirements.txt \
+# #     && rm -rf /root/.cache/pip
+
+# #Build time: 3.5s (faster, no size savings now, 
+# # but I think it will save in the future with subsequent builds/caching)
+# # No need to upgrade pip, more aggressive pip cache cleanup
+# RUN python -m venv /venv \
+#     && /venv/bin/pip install --no-cache-dir -r requirements.txt \
+#     && rm -rf /root/.cache/pip/* \    
+#     && /venv/bin/pip cache purge || true
+
+# # App code
+# COPY src ./src
+
+# ENV PATH="/venv/bin:$PATH" \
+#     PYTHONPATH="/app/src" \
+#     PYTHONDONTWRITEBYTECODE=1 \
+#     PYTHONUNBUFFERED=1
+
+# CMD ["python", "-m", "cloudflare_verified_ddns.__main__"]
