@@ -1,10 +1,9 @@
-# Only applies at build time (controls what goes into the Docker image)
-
 # ================================
 # Python build and cache artifacts
 # ================================
 .pytest_cache/
-src/update_dns/__pycache__/
+src/cloudflare_verified_ddns/__pycache__/
+__pycache__
 
 # ====================
 # Virtual environments
@@ -20,7 +19,69 @@ tests/
 # Project config and docs
 # =======================
 README.md
+*.md
 .dockerignore
 Dockerfile
 docker-compose.yaml
 docker-compose.dev.yaml
+
+.git
+
+
+
+# # # Only applies at build time (controls what goes into the Docker image)
+
+# # Python artifacts, caches, bytecode
+# __pycache__/
+# *.py[cod]
+# *$py.class
+# .pytest_cache/
+# .mypy_cache/
+# .ruff_cache/
+# .coverage
+# coverage.xml
+# htmlcov/
+
+# # Virtual environments & build artifacts
+# .venv/
+# venv/
+# ENV/
+# env/
+# *.egg-info/
+# dist/
+# build/
+# .eggs/
+
+# # Tests, docs, non-production files
+# tests/
+# docs/
+# *.md
+# LICENSE
+# CONTRIBUTING.md
+# CODE_OF_CONDUCT.md
+
+# # Editor / OS / dev machine junk
+# .git/
+# .github/
+# .gitignore
+# .vscode/
+# .idea/
+# .DS_Store
+# Thumbs.db
+# *.swp
+# *.swo
+# *.bak
+# *.tmp
+# *.log
+
+# # Project-specific temp / debug files
+# src/cloudflare_verified_ddns/zzz_commands.txt
+# *.log
+
+# # Docker / CI files (unless you intentionally COPY them)
+# Dockerfile*
+# docker-compose*
+# .dockerignore
+
+# # Optional: exclude secrets / local config (recommended!)
+# .env*

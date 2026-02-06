@@ -4,21 +4,17 @@ x-common-base: &common-base
     context: .
     args:
       TZ: ${TZ:-UTC}
-      POETRY_ENV: prod
   env_file: .env
   environment:
     - TZ=${TZ:-UTC}
 
 services:
-  # ─── Continuous Operation (Main Loop) ───
   app:
     <<: *common-base
-    container_name: update_dns_app
+    container_name: cloudflare-verified-ddns
     restart: unless-stopped
-
-    # ─── Persistent cache volume (named volume) ───
     volumes:
-      - update_dns_cache:/app/cache/update_dns
+      - cache:/app/cache
 
     logging:
       driver: json-file
@@ -33,4 +29,4 @@ services:
     restart: "no"
 
 volumes:
-  update_dns_cache:
+  cache:
