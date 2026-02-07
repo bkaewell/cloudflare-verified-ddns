@@ -6,6 +6,13 @@ from pathlib import Path
 from typing import Optional
 from dataclasses import dataclass
 
+# --- Project imports ---
+from .logger import get_logger
+
+
+# Define the logger once for the entire module
+logger = get_logger("cache")
+
 
 @dataclass(frozen=True)
 class CacheLookupResult:
@@ -140,7 +147,10 @@ class PersistentCache:
             }
             self.cloudflare_ip_file.write_text(json.dumps(payload, indent=2))
         except OSError:
-            pass
+            logger.warning(
+                f"Failed to write Cloudflare IP cache "
+                f"({self.cloudflare_ip_file}): {e}"
+            )
 
     def load_uptime(self) -> Uptime:
         """
@@ -175,5 +185,8 @@ class PersistentCache:
                 "last_update": time.time(),
             }
             self.uptime_file.write_text(json.dumps(payload, indent=2))
-        except OSError:
-            pass
+        except OSError as e:
+            logger.warning(
+                f"Failed to write uptime cache "
+                f"({self.uptime_file}): {e}"
+            )

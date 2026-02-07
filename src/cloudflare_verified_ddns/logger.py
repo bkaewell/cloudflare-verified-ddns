@@ -54,5 +54,5 @@ def get_logger(name: str) -> logging.Logger:
     """
     Return a namespaced logger for any module.
     """
-    #return logging.getLogger(f"update_dns.{name}") # w/ namespace (update_dns)
+    #return logging.getLogger(f"cloudflare_verified_ddns.{name}") # w/ namespace (cloudflare_verified_ddns)
     return logging.getLogger(f"{name}")
