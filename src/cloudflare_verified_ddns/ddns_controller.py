@@ -205,7 +205,7 @@ class DDNSController:
             return
 
         # ─── L3 Targeted update required (mutation) ───
-        result, elapsed_ms = self.dns_provider.update_dns(public_ip)
+        _, elapsed_ms = self.dns_provider.update_dns(public_ip)
         self.cache.store_cloudflare_ip(public_ip)
 
         meta=[]
@@ -412,7 +412,8 @@ class DDNSController:
             # DDNS reconciliation (safe to act)
             #if public and public.success:
             self._reconcile_dns_if_needed(public.ip)
-        else:
+        
+        elif current == ReadinessState.NOT_READY:
             self.recovery.maybe_recover()
 
         self._tick_uptime(current)
