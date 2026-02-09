@@ -7,17 +7,53 @@ flowchart TB
     UPS[UPS Battery Backup]
     BOOT([Power On])
 
-    NET[Netplan<br/>Stable LAN IP<br/>192.168.0.123]
+    NET[Netplan<br/>Static LAN IP<br/>192.168.0.123]
 
     %% Services
-    subgraph SERVICES["Always-On Services"]
-        DDNS[Cloudflare-Verified-DDNS<br/>47 MB Image<br/>Authoritative DNS Publisher]
+    subgraph SERVICES["Docker Containers<br/>Always-Running Services"]
+        DDNS[Cloudflare<br/>Verified<br/>DDNS]
         WG[WireGuard VPN<br/>DNS-Based Endpoint]
     end
 
     %% Power Semantics
     UPS --> BOOT
-    UPS -. "Survives outage" .-> NET
+    UPS -. "Survives outages" .-> NET
+    UPS -. "Continuous operation" .-> SERVICES
+
+    %% Boot Sequence
+    BOOT --> NET
+    NET --> SERVICES
+
+    %% Core Dependency
+    DDNS -->|Publishes verified DNS record| WG
+
+    %% Styling
+    classDef node fill:#f5f7fa,stroke:#333,stroke-width:2px;
+    classDef group fill:#ddebf7,stroke:#333,stroke-width:2px;
+
+    class UPS,BOOT,NET,DDNS,WG node;
+    style SERVICES fill:#ddebf7,stroke:#333,stroke-width:2px;
+```
+
+
+
+```mermaid
+flowchart TB
+    %% Power & Initialization
+    UPS[UPS Battery Backup]
+    BOOT([Power On])
+
+    NET[Netplan<br/>Static LAN IP<br/>192.168.0.123]
+
+    %% Services
+    subgraph SERVICES["Docker Containers<br/> Always Running Services"]
+        DDNS[Cloudflare<br/>Verified<br/>DDNS<br/>]
+        WG[WireGuard VPN<br/>DNS-Based Endpoint]
+    end
+
+    %% Power Semantics
+    UPS --> BOOT
+    UPS -. "Survives outages" .-> NET
     UPS -. "Continuous operation" .-> SERVICES
 
     %% Boot Sequence
