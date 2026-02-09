@@ -1,6 +1,37 @@
 # Architecture
 
 
+```mermaid
+flowchart TD
+    %% Boot Sequence Diagram for Cloudflare Verified DDNS + WireGuard VPN
+    A[Power On / Boot] --> B[Netplan Configures LAN IP]
+    B --> C[Stable LAN IP: 192.168.0.123]
+    C --> D[Always-Running Services]
+
+    %% Services
+    D --> E[Cloudflare-Verified-DDNS<br/>Public IP --> Cloudflare DNS]
+    D --> F[WG-Easy WireGuard VPN<br/>UDP 51820 / TCP 51821]
+
+    %% UPS
+    UPS[UPS Battery Backup<br/>Ensures Continuous Operation] --> E
+    UPS --> F
+
+    %% Style / notes
+    classDef power fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef network fill:#ffeb99,stroke:#333,stroke-width:2px;
+    classDef services fill:#99ccff,stroke:#333,stroke-width:2px;
+    classDef container fill:#ffcc99,stroke:#333,stroke-width:2px;
+    classDef vpn fill:#99ff99,stroke:#333,stroke-width:2px;
+    classDef ups fill:#cccccc,stroke:#333,stroke-width:2px;
+
+    class A power;
+    class B,C network;
+    class D services;
+    class E container;
+    class F vpn;
+    class UPS ups;
+```
+
 
 ```mermaid
 flowchart TD
@@ -30,6 +61,8 @@ flowchart TD
     class F vpn;
     class UPS fill:#cccccc,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
 ```
+
+
 
 
 
