@@ -2,11 +2,6 @@
 
 
 ```mermaid
-### High-Level System Architecture
-
-*Core services, data flow and external dependencies*
-
-```mermaid
 %%{init: {'theme':'base'}}%%
 flowchart LR
     subgraph "Frontend Layer"
