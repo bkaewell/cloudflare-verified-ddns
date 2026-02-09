@@ -13,7 +13,7 @@ flowchart TB
     CF[(Cloudflare DNS<br/>Public A Records)]
 
     %% Services
-    subgraph SERVICES["Services (Policy: Always-Running)"]
+    subgraph SERVICES["Services (Always-Running)"]
         DDNS[Cloudflare-Verified-DDNS]
         WG[WireGuard VPN Server]
     end
@@ -58,7 +58,11 @@ flowchart TB
     style CLIENTS fill:#ededed,stroke:#333,stroke-width:2px;
 ```
 
+> 🔗 **Cloudflare-Verified-DDNS repository:**  
+> https://github.com/yourname/cloudflare-verified-ddns
 
+> 🔗 **WireGuard VPN Server repository:**  
+> https://github.com/bkaewell/wireguard-setup
 
 
 ```mermaid
