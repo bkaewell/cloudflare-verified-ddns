@@ -13,7 +13,7 @@ flowchart LR
 
     %% Bottom Row
     LOGS[Logging & Monitoring<br/>Telemetry / Metrics]
-    NOTIFY[Notification Service<br/>(Future / TBD)]
+    NOTIFY["Notification Service<br/>(Future / TBD)"]
 
     %% Top Row Flows
     REPO -->|Deploy / Configure| APP
