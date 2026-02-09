@@ -2,37 +2,35 @@
 
 ```mermaid
 flowchart TB
-    %% ── Top Row: Core System & State ─────────────────────
-    subgraph ROW1
-        direction LR
-        REPO[GitHub Repository]
-        CICD["CI / CD<br/>(Future)"]
-        APP[Production Server App<br/>Cloudflare-Verified-DDNS]
-        CF[(Cloudflare DNS)]
-    end
+    %% Source & Control
+    REPO[GitHub Repository<br/>cloudflare-verified-ddns]
+    CICD["CI / CD Pipeline<br/>(Future)"]
+    USERS[Users / Operators]
 
-    %% ── Bottom Row: Observability & Humans ───────────────
-    subgraph ROW2
-        direction LR
-        NOTIFY["Notification Service<br/>(Future)"]
-        USERS[Users / Operators]
-        LOGS[Logging & Monitoring]
-    end
+    %% Core Application
+    APP[Production Server App<br/>Cloudflare-Verified-DDNS]
 
-    %% Core System Flow
-    REPO --> CICD
-    CICD --> APP
-    APP --> CF
-    CF --> APP
+    %% External Systems
+    CF[(Cloudflare DNS<br/>System of Record)]
 
     %% Observability & Feedback
-    APP --> LOGS
-    LOGS -.-> NOTIFY
-    NOTIFY -.-> REPO
+    LOGS[Logging & Monitoring<br/>Telemetry / Metrics]
+    NOTIFY["Notification Service<br/>(Future)"]
 
-    %% Human Interaction
+    %% Control Flow
+    REPO --> CICD
+    CICD --> APP
     USERS -->|Operate / Observe| APP
-    NOTIFY -.->|Alerts| USERS
+
+    %% Data & State Flow
+    APP -->|Read / Write DNS State| CF
+    CF -->|Resolved Records| APP
+
+    %% Observability
+    APP -->|Emit metrics & events| LOGS
+    LOGS -.->|Alerts / Signals| NOTIFY
+    NOTIFY -.-> USERS
+    NOTIFY -.-> REPO
 
     %% Styling
     classDef core fill:#fff2cc,stroke:#333,stroke-width:2px;
@@ -46,9 +44,6 @@ flowchart TB
     class USERS human;
     class CF cloud;
     class CICD,NOTIFY future;
-
-
-
 ```
 
 
