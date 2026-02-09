@@ -104,7 +104,7 @@ flowchart TB
     end
 
     UPS --> BOOT
-    UPS --> NET
+    # UPS --> NET
     UPS --> DOCKER
 
     BOOT --> NET
@@ -126,7 +126,55 @@ flowchart TB
     class WG vpn;
 ```
 
+```
+mermaid
 
+flowchart TB
+    %% Power & Resilience
+    UPS[UPS Battery Backup]
+
+    BOOT([Power On / Boot Sequence])
+    NET[Netplan<br/>Static LAN IP<br/>192.168.0.123]
+
+    %% Host System
+    subgraph HOST["Edge Node / Always-On Linux System"]
+        DOCKER[Docker Engine<br/>restart: unless-stopped]
+
+        subgraph CONTAINERS["Docker Containers"]
+            DDNS[Cloudflare-Verified-DDNS<br/>Image Size: 47 MB<br/>Authoritative Public IP Publisher]
+            WG[WG-Easy WireGuard VPN<br/>Secure Remote Access<br/>DNS-Based Endpoint Resolution]
+        end
+    end
+
+    %% Power Flow
+    UPS --> BOOT
+    UPS -. "Survives power outage" .-> NET
+    UPS -. "Ensures continuous operation" .-> DOCKER
+
+    %% Boot & Runtime Flow
+    BOOT --> NET
+    NET --> DOCKER
+    DOCKER --> DDNS
+    DOCKER --> WG
+
+    %% DNS Dependency
+    DDNS -->|Maintains accurate DNS A/AAAA records| WG
+
+    %% Styling
+    classDef power fill:#e6e6e6,stroke:#333,stroke-width:2px;
+    classDef network fill:#fff2cc,stroke:#333,stroke-width:2px;
+    classDef host fill:#ddebf7,stroke:#333,stroke-width:2px;
+    classDef docker fill:#cfe2f3,stroke:#333,stroke-width:2px;
+    classDef container fill:#fce5cd,stroke:#333,stroke-width:2px;
+    classDef vpn fill:#d9ead3,stroke:#333,stroke-width:2px;
+
+    class UPS,BOOT power;
+    class NET network;
+    class HOST host;
+    class DOCKER docker;
+    class DDNS container;
+    class WG vpn;
+```
 
 
 
