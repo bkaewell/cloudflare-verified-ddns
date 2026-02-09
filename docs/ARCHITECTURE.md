@@ -39,6 +39,9 @@ flowchart TB
 ```
 
 
+
+
+
 ```mermaid
 flowchart TB
     %% Physical Layer
@@ -87,6 +90,8 @@ flowchart TB
 
 
 
+
+
 ```mermaid
 flowchart TB
     UPS[UPS Battery Backup<br/>Survives Power Outages]
@@ -126,8 +131,10 @@ flowchart TB
     class WG vpn;
 ```
 
-```
-mermaid
+
+
+
+```mermaid
 flowchart TB
     %% Power & Resilience
     UPS[UPS Battery Backup]
