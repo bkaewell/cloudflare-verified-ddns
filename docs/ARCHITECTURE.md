@@ -1,6 +1,59 @@
 # Architecture
 
 ```mermaid
+flowchart TB
+    %% ── Top Row: Core System & State ─────────────────────
+    subgraph ROW1
+        direction LR
+        REPO[GitHub Repository]
+        CICD["CI / CD<br/>(Future)"]
+        APP[Production Server App<br/>Cloudflare-Verified-DDNS]
+        CF[(Cloudflare DNS)]
+    end
+
+    %% ── Bottom Row: Observability & Humans ───────────────
+    subgraph ROW2
+        direction LR
+        NOTIFY["Notification Service<br/>(Future)"]
+        USERS[Users / Operators]
+        LOGS[Logging & Monitoring]
+    end
+
+    %% Core System Flow
+    REPO --> CICD
+    CICD --> APP
+    APP --> CF
+    CF --> APP
+
+    %% Observability & Feedback
+    APP --> LOGS
+    LOGS -.-> NOTIFY
+    NOTIFY -.-> REPO
+
+    %% Human Interaction
+    USERS -->|Operate / Observe| APP
+    NOTIFY -.->|Alerts| USERS
+
+    %% Styling
+    classDef core fill:#fff2cc,stroke:#333,stroke-width:2px;
+    classDef neutral fill:#f5f7fa,stroke:#333,stroke-width:2px;
+    classDef cloud fill:#e8f0fe,stroke:#333,stroke-width:2px;
+    classDef future fill:#ffffff,stroke:#999,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef human fill:#ededed,stroke:#333,stroke-width:2px;
+
+    class APP core;
+    class REPO,LOGS neutral;
+    class USERS human;
+    class CF cloud;
+    class CICD,NOTIFY future;
+
+
+
+```
+
+
+
+```mermaid
 flowchart LR
     %% ── Top Row: Control & State ─────────────────────────
     subgraph TOP
