@@ -2,6 +2,109 @@
 
 
 
+```mermaid
+flowchart LR
+    %% Top Row
+    REPO[GitHub Repository<br/>cloudflare-verified-ddns]
+    CICD["CI / CD Pipeline<br/>(Future)"]
+    APP[Production Server App<br/>Cloudflare-Verified-DDNS]
+    CF[(Cloudflare DNS<br/>State File)]
+
+    %% Bottom Row
+    LOGS[Logging & Monitoring<br/>Telemetry / Metrics]
+    NOTIFY["Notification Service<br/>(Future)"]
+
+    %% Top Row Flow
+    REPO --> CICD
+    CICD --> APP
+    APP -->|Read / Write DNS State| CF
+
+    %% Bottom Row Flow
+    APP -->|Emit metrics & events| LOGS
+    LOGS -.->|Alerts / Signals| NOTIFY
+
+    %% Styling
+    classDef core fill:#fff2cc,stroke:#333,stroke-width:2px;
+    classDef neutral fill:#f5f7fa,stroke:#333,stroke-width:2px;
+    classDef cloud fill:#e8f0fe,stroke:#333,stroke-width:2px;
+    classDef future fill:#ffffff,stroke:#999,stroke-width:2px,stroke-dasharray: 5 5;
+
+    class APP core;
+    class REPO,LOGS neutral;
+    class CF cloud;
+    class CICD,NOTIFY future;
+```
+
+
+
+```mermaid
+flowchart TB
+    %% Nodes
+    REPO[GitHub Repository]
+    CICD["CI / CD<br/>(Future)"]
+    APP[Production Server App<br/>Cloudflare-Verified-DDNS]
+    CF[(Cloudflare DNS)]
+    LOGS[Logging & Monitoring]
+    NOTIFY["Notification Service<br/>(Future)"]
+
+    %% Clockwise Flow
+    REPO --> CICD
+    CICD --> APP
+    APP --> CF
+    APP --> LOGS
+    LOGS -.-> NOTIFY
+    NOTIFY -.-> REPO
+
+    %% Styling
+    classDef core fill:#fff2cc,stroke:#333,stroke-width:2px;
+    classDef neutral fill:#f5f7fa,stroke:#333,stroke-width:2px;
+    classDef cloud fill:#e8f0fe,stroke:#333,stroke-width:2px;
+    classDef future fill:#ffffff,stroke:#999,stroke-width:2px,stroke-dasharray: 5 5;
+
+    class APP core;
+    class REPO,LOGS neutral;
+    class CF cloud;
+    class CICD,NOTIFY future;
+```
+
+
+```mermaid
+flowchart LR
+    %% Clockwise Layout
+    REPO[GitHub Repository]
+    CICD["CI / CD<br/>(Future)"]
+    APP[Production Server App<br/>Cloudflare-Verified-DDNS]
+    CF[(Cloudflare DNS)]
+    LOGS[Logging & Monitoring]
+    NOTIFY["Notification Service<br/>(Future)"]
+
+    %% Clockwise Connections
+    REPO --> CICD
+    CICD --> APP
+    APP --> CF
+    CF --> APP
+    APP --> LOGS
+    LOGS -.-> NOTIFY
+    NOTIFY -.-> REPO
+
+    %% Styling
+    classDef core fill:#fff2cc,stroke:#333,stroke-width:2px;
+    classDef neutral fill:#f5f7fa,stroke:#333,stroke-width:2px;
+    classDef cloud fill:#e8f0fe,stroke:#333,stroke-width:2px;
+    classDef future fill:#ffffff,stroke:#999,stroke-width:2px,stroke-dasharray: 5 5;
+
+    class APP core;
+    class REPO,LOGS neutral;
+    class CF cloud;
+    class CICD,NOTIFY future;
+```
+
+
+
+
+
+
+
 
 ```mermaid
 flowchart LR
