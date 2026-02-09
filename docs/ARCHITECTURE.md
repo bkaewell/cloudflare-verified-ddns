@@ -4,8 +4,8 @@
 ```mermaid
 flowchart TB
     %% Nodes (declare humans early for visual priority)
-    REPO[GitHub Repository]
     USERS[Users / Operators]
+    REPO[GitHub Repository]
     CICD["CI / CD<br/>(Future)"]
     APP[Production Server App<br/>Cloudflare-Verified-DDNS]
     CF[(Cloudflare DNS)]
