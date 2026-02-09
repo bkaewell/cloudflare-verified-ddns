@@ -3,9 +3,10 @@
 ```mermaid
 flowchart TB
     %% Source & Control
+    USERS[Users / Operators]
     REPO[GitHub Repository<br/>cloudflare-verified-ddns]
     CICD["CI / CD Pipeline<br/>(Future)"]
-    USERS[Users / Operators]
+    
 
     %% Core Application
     APP[Production Server App<br/>Cloudflare-Verified-DDNS]
