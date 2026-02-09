@@ -3,6 +3,49 @@
 
 ```mermaid
 flowchart TB
+    %% Power & Initialization
+    UPS[UPS Battery Backup]
+    BOOT([Power On])
+
+    NET[Netplan<br/>Stable LAN IP<br/>192.168.0.123]
+
+    %% Services
+    subgraph SERVICES["Always-On Services"]
+        DDNS[Cloudflare-Verified-DDNS<br/>47 MB Image<br/>Authoritative DNS Publisher]
+        WG[WireGuard VPN<br/>DNS-Based Endpoint]
+    end
+
+    %% Power Semantics
+    UPS --> BOOT
+    UPS -. "Survives outage" .-> NET
+    UPS -. "Continuous operation" .-> SERVICES
+
+    %% Boot Sequence
+    BOOT --> NET
+    NET --> SERVICES
+
+    %% Core Dependency
+    DDNS -->|Publishes verified DNS record| WG
+
+    %% Styling
+    classDef power fill:#ededed,stroke:#333,stroke-width:2px;
+    classDef network fill:#fff2cc,stroke:#333,stroke-width:2px;
+    classDef service fill:#f5f7fa,stroke:#333,stroke-width:2px;
+    classDef vpn fill:#e2f0d9,stroke:#333,stroke-width:2px;
+
+    class UPS,BOOT power;
+    class NET network;
+    class DDNS service;
+    class WG vpn;
+```
+
+
+
+
+
+
+```mermaid
+flowchart TB
     %% Power & Boot
     UPS[UPS Battery Backup<br/>Power Continuity] --> BOOT([Power On / Boot])
 
