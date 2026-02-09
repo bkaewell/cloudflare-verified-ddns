@@ -1,6 +1,62 @@
 # Architecture
 
 
+
+```mermaid
+flowchart TB
+    %% Power & Init (Context)
+    UPS[UPS Battery Backup]
+    BOOT([Power On])
+    NET[Netplan<br/>Static LAN IP<br/>192.168.0.123]
+
+    %% Cloudflare (External System of Record)
+    CF[(Cloudflare DNS<br/>Public A/AAAA Records)]
+
+    %% Services
+    subgraph SERVICES["Docker Containers<br/>Always-Running Services"]
+        DDNS[Cloudflare-Verified-DDNS<br/>Authoritative IP Publisher]
+        WG[WireGuard VPN Server<br/>DNS-Based Endpoint]
+    end
+
+    %% VPN Clients
+    subgraph CLIENTS["VPN Clients"]
+        C1[Client 1]
+        C2[Client 2]
+        CN[Client N]
+    end
+
+    %% Power & Boot Context
+    UPS --> BOOT
+    UPS -. "Survives outages" .-> NET
+    UPS -. "Continuous operation" .-> SERVICES
+
+    BOOT --> NET
+    NET --> SERVICES
+
+    %% DNS as Shared Contract
+    DDNS -->|Publishes verified IP| CF
+    WG -->|Resolves endpoint via DNS| CF
+
+    %% VPN Usage
+    WG --> C1
+    WG --> C2
+    WG --> CN
+
+    %% Styling
+    classDef neutral fill:#f5f7fa,stroke:#333,stroke-width:2px;
+    classDef focus fill:#fff2cc,stroke:#333,stroke-width:2px;
+    classDef cloud fill:#e8f0fe,stroke:#333,stroke-width:2px;
+
+    class UPS,BOOT,NET,WG,C1,C2,CN neutral;
+    class DDNS focus;
+    class CF cloud;
+    style SERVICES fill:#ddebf7,stroke:#333,stroke-width:2px;
+    style CLIENTS fill:#ededed,stroke:#333,stroke-width:2px;
+```
+
+
+
+
 ```mermaid
 flowchart TB
     %% Power & Initialization
