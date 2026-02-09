@@ -2,38 +2,10 @@
 
 
 ```mermaid
-%%{init: {'theme':'base'}}%%
-flowchart LR
-    subgraph "Frontend Layer"
-        A[Web UI] --> B[Mobile App]
-    end
-    subgraph "API & Business Logic"
-        C[REST / GraphQL API]
-        D[Authentication Service]
-        E[Business Rules Engine]
-    end
-    subgraph "Data Layer"
-        F[(PostgreSQL)]
-        G[(Redis Cache)]
-        H[S3 Storage]
-    end
-    subgraph "External"
-        I[Cloudflare DNS]
-        J[Payment Gateway]
-    end
-    A & B --> C
-    C --> D & E
-    C --> F & G & H
-    C --> I & J
-```
-
-
-
-```mermaid
 flowchart TB
     %% Nodes (declare humans early for visual priority)
-    USERS[Users / Operators]
     REPO[GitHub Repository]
+    USERS[Users / Operators]
     CICD["CI / CD<br/>(Future)"]
     APP[Production Server App<br/>Cloudflare-Verified-DDNS]
     CF[(Cloudflare DNS)]
@@ -41,7 +13,6 @@ flowchart TB
     NOTIFY["Notification Service<br/>(Future)"]
 
     %% Core Flow
-    USERS -->|Improve| REPO
     USERS -->|Operate| APP
 
     REPO --> CICD
@@ -58,16 +29,11 @@ flowchart TB
     classDef neutral fill:#f5f7fa,stroke:#333,stroke-width:2px;
     classDef cloud fill:#e8f0fe,stroke:#333,stroke-width:2px;
     classDef future fill:#ffffff,stroke:#999,stroke-width:2px,stroke-dasharray: 5 5;
-    classDef human fill:#ededed,stroke:#333,stroke-width:2px;
 
     class APP core;
-    class REPO,LOGS neutral;
+    class REPO,USERS,LOGS neutral;
     class CF cloud;
     class CICD,NOTIFY future;
-    class USERS human;
-
-
-
 ```
 
 
