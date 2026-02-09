@@ -57,9 +57,10 @@ flowchart TB
     style SERVICES fill:#ddebf7,stroke:#333,stroke-width:2px;
     style CLIENTS fill:#ededed,stroke:#333,stroke-width:2px;
 ```
-
-> 🔗 [**Cloudflare-Verified-DDNS repository**](https://github.com/yourname/cloudflare-verified-ddns)
-> 🔗 [**WireGuard VPN Server repository**](https://github.com/bkaewell/wireguard-setup)
+  
+> 🔗 [**Cloudflare-Verified-DDNS repository**](https://github.com/yourname/cloudflare-verified-ddns) 
+> 🔗 [**WireGuard VPN Server repository**](https://github.com/bkaewell/wireguard-setup) 
+  
 
 > 🔗 **Cloudflare-Verified-DDNS repository:**  
 > https://github.com/yourname/cloudflare-verified-ddns
