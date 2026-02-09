@@ -2,6 +2,44 @@
 
 
 
+
+```mermaid
+flowchart LR
+    %% Top Row
+    REPO[GitHub Repository<br/>cloudflare-verified-ddns]
+    USERS[Users / Operators]
+    APP[Production Server App<br/>Cloudflare-Verified-DDNS]
+    CF[(Cloudflare DNS<br/>State File)]
+
+    %% Bottom Row
+    LOGS[Logging & Monitoring<br/>Telemetry / Metrics]
+    NOTIFY[Notification Service<br/>(Future / TBD)]
+
+    %% Top Row Flows
+    REPO -->|Deploy / Configure| APP
+    USERS -->|Operate / Observe| APP
+    APP -->|Read / Write DNS State| CF
+
+    %% Second Row Flows
+    APP -->|Emit metrics & events| LOGS
+    LOGS -.->|Alerts / Signals| NOTIFY
+
+    %% Styling
+    classDef core fill:#fff2cc,stroke:#333,stroke-width:2px;
+    classDef neutral fill:#f5f7fa,stroke:#333,stroke-width:2px;
+    classDef cloud fill:#e8f0fe,stroke:#333,stroke-width:2px;
+    classDef future fill:#ffffff,stroke:#999,stroke-width:2px,stroke-dasharray: 5 5;
+
+    class APP core;
+    class REPO,USERS,LOGS neutral;
+    class CF cloud;
+    class NOTIFY future;
+```
+
+
+
+
+
 ```mermaid
 ---
 title: High-Level System Architecture<br/>Context infrastructure and service topology for resilient, DNS-anchored remote access
