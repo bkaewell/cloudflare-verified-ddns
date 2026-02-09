@@ -9,7 +9,7 @@ flowchart TB
     CICD["CI / CD<br/>(Future)"]
     APP[Production Server App<br/>Cloudflare-Verified-DDNS]
     CF[(Cloudflare DNS)]
-    LOGS[Logging & Monitoring]
+    LOGS["Logging & Monitoring<br/>(currently internal,<br/> future could be external)"]
     NOTIFY["Notification Service<br/>(Future)"]
 
     %% Core Flow
@@ -22,7 +22,7 @@ flowchart TB
 
     %% Observability & Feedback
     LOGS -.-> NOTIFY
-    NOTIFY -.->|Alerts / Signals| USERS
+    NOTIFY -.->|Alerts| USERS
 
     %% Styling
     classDef core fill:#fff2cc,stroke:#333,stroke-width:2px;
