@@ -7,19 +7,19 @@ flowchart TB
     %% Power & Init (Context)
     UPS[UPS Battery Backup]
     BOOT([Power On])
-    NET[Netplan<br/>Static LAN IP<br/>192.168.0.123]
+    NET[Netplan<br/>Static LAN IP]
 
     %% Cloudflare (External System of Record)
-    CF[(Cloudflare DNS<br/>Public A/AAAA Records)]
+    CF[(Cloudflare DNS<br/>Public A Records)]
 
     %% Services
-    subgraph SERVICES["Docker Containers<br/>Always-Running Services"]
-        DDNS[Cloudflare-Verified-DDNS<br/>Authoritative IP Publisher]
-        WG[WireGuard VPN Server<br/>DNS-Based Endpoint]
+    subgraph SERVICES["Services (Policy: Always-Running)"]
+        DDNS[Cloudflare-Verified-DDNS]
+        WG[WireGuard VPN Server]
     end
 
     %% VPN Clients
-    subgraph CLIENTS["VPN Clients"]
+    subgraph CLIENTS["Remote Clients"]
         C1[Client 1]
         C2[Client 2]
         CN[Client N]
@@ -27,20 +27,24 @@ flowchart TB
 
     %% Power & Boot Context
     UPS --> BOOT
-    UPS -. "Survives outages" .-> NET
-    UPS -. "Continuous operation" .-> SERVICES
+    UPS -. "Survives<br/>outages" .-> NET
+    UPS -. "Continuous<br/>operation" .-> SERVICES
 
     BOOT --> NET
     NET --> SERVICES
 
     %% DNS as Shared Contract
-    DDNS -->|Publishes verified IP| CF
-    WG -->|Resolves endpoint via DNS| CF
+    DDNS -->|Publishes verified<br/>public IP| CF
+    WG -->|Resolves endpoint<br/> via DNS| CF
 
     %% VPN Usage
     WG --> C1
     WG --> C2
     WG --> CN
+
+    %% Repo Link
+    click DDNS "https://github.com/bkaewell/cloudflare-verified-ddns" "Open Cloudflare-Verified-DDNS Repo"
+    click WG "https://github.com/bkaewell/wireguard-setup" "Open WireGuard VPN Server Repo"
 
     %% Styling
     classDef neutral fill:#f5f7fa,stroke:#333,stroke-width:2px;
