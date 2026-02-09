@@ -128,7 +128,6 @@ flowchart TB
 
 ```
 mermaid
-
 flowchart TB
     %% Power & Resilience
     UPS[UPS Battery Backup]
