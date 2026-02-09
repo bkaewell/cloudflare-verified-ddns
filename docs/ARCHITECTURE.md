@@ -46,9 +46,9 @@ flowchart TB
 
     class DDNS core;
     class TLOG neutral;
-    class REPO,USERS,LOGS neutral;
+    class REPO,USERS neutral;
     class CF cloud;
-    class CICD,NOTIFY future;
+    class CICD,LOGS,NOTIFY future;
 ```
 
 
