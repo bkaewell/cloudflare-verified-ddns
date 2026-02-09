@@ -1,13 +1,17 @@
 # Architecture
 
+## High-Level Architecture
 
 ```mermaid
+---
+title: High-Level Architecture
+---
 flowchart TB
-    %% Nodes (declare humans early for visual priority)
+    %% Nodes
     USERS[Users / Operators]
     REPO[GitHub Repository]
     CICD["CI / CD<br/>(Future)"]
-    APP[Production Server App<br/>Cloudflare-Verified-DDNS]
+    APP[Production Server App<br/>Cloudflare-verified-ddns]
     CF[(Cloudflare DNS)]
     LOGS["Logging & Monitoring<br/>(currently internal,<br/> future could be external)"]
     NOTIFY["Notification Service<br/>(Future)"]
