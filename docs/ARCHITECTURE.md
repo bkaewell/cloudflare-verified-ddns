@@ -104,7 +104,7 @@ flowchart TB
     end
 
     UPS --> BOOT
-    # UPS --> NET
+    UPS --> NET
     UPS --> DOCKER
 
     BOOT --> NET
