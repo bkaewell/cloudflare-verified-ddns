@@ -7,26 +7,36 @@
 title: High-Level Architecture
 ---
 flowchart TB
-    %% Nodes
+    %% Users & Repo
     USERS[Users / Operators]
-    REPO[GitHub Repository]
-    CICD["CI / CD<br/>(Future)"]
-    APP[Production Server App<br/>Cloudflare-verified-ddns]
+    REPO[GitHub Repo]
+    CICD["CI / CD<br/>Pipeline<br/>(Future)"]
+
+    %% Host + Deployed Software
+    subgraph APPBOX["Production Server App"]
+        direction TB
+        DDNS[cloudflare-verified-ddns]
+        TLOG[Logging & Telemetry]
+    end
+
+    %% External Systems
     CF[(Cloudflare DNS)]
-    LOGS["Logging & Monitoring<br/>(currently internal,<br/> future could be external)"]
+    LOGS[Logging & Monitoring]
     NOTIFY["Notification Service<br/>(Future)"]
 
     %% Core Flow
-    USERS -->|Operate| APP
+    USERS -->|Operate| DDNS
 
     REPO --> CICD
-    CICD --> APP
-    APP --> CF
-    APP --> LOGS
+    CICD --> DDNS
+    DDNS --> CF
 
     %% Observability & Feedback
+    DDNS --> TLOG
+    TLOG -->|Telemetry / Metrics| LOGS
     LOGS -.-> NOTIFY
-    NOTIFY -.->|Alerts| USERS
+    NOTIFY -.->|Alerts| USERS    
+
 
     %% Styling
     classDef core fill:#fff2cc,stroke:#333,stroke-width:2px;
@@ -34,7 +44,8 @@ flowchart TB
     classDef cloud fill:#e8f0fe,stroke:#333,stroke-width:2px;
     classDef future fill:#ffffff,stroke:#999,stroke-width:2px,stroke-dasharray: 5 5;
 
-    class APP core;
+    class DDNS core;
+    class TLOG neutral;
     class REPO,USERS,LOGS neutral;
     class CF cloud;
     class CICD,NOTIFY future;
