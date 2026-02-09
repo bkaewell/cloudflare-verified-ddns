@@ -1,7 +1,7 @@
 # Architecture
 
 
-```mermaind
+```mermaid
 flowchart TB
     %% Power & Boot
     UPS[UPS Battery Backup<br/>Power Continuity] --> BOOT([Power On / Boot])
