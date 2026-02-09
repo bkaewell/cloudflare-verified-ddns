@@ -1,5 +1,46 @@
 # Architecture
 
+
+```mermaid
+flowchart TB
+    %% Nodes
+    REPO[GitHub Repository]
+    CICD["CI / CD<br/>(Future)"]
+    APP[Production Server App<br/>Cloudflare-Verified-DDNS]
+    CF[(Cloudflare DNS)]
+    LOGS[Logging & Monitoring]
+    NOTIFY["Notification Service<br/>(Future)"]
+    USERS[Users / Operators]
+
+    %% Core Flow
+    REPO --> CICD
+    CICD --> APP
+    APP --> CF
+    APP --> LOGS
+    LOGS -.-> NOTIFY
+
+    %% Human Feedback Loop
+    NOTIFY -.->|Alerts / Signals| USERS
+    USERS -->|Operate| APP
+    USERS -->|Improve| REPO
+
+    %% Styling
+    classDef core fill:#fff2cc,stroke:#333,stroke-width:2px;
+    classDef neutral fill:#f5f7fa,stroke:#333,stroke-width:2px;
+    classDef cloud fill:#e8f0fe,stroke:#333,stroke-width:2px;
+    classDef future fill:#ffffff,stroke:#999,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef human fill:#ededed,stroke:#333,stroke-width:2px;
+
+    class APP core;
+    class REPO,LOGS neutral;
+    class CF cloud;
+    class CICD,NOTIFY future;
+    class USERS human;
+```
+
+
+
+
 ```mermaid
 flowchart TB
     %% Source & Control
