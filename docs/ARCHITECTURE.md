@@ -2,6 +2,39 @@
 
 
 ```mermaid
+### High-Level System Architecture
+
+*Core services, data flow and external dependencies*
+
+```mermaid
+%%{init: {'theme':'base'}}%%
+flowchart LR
+    subgraph "Frontend Layer"
+        A[Web UI] --> B[Mobile App]
+    end
+    subgraph "API & Business Logic"
+        C[REST / GraphQL API]
+        D[Authentication Service]
+        E[Business Rules Engine]
+    end
+    subgraph "Data Layer"
+        F[(PostgreSQL)]
+        G[(Redis Cache)]
+        H[S3 Storage]
+    end
+    subgraph "External"
+        I[Cloudflare DNS]
+        J[Payment Gateway]
+    end
+    A & B --> C
+    C --> D & E
+    C --> F & G & H
+    C --> I & J
+```
+
+
+
+```mermaid
 flowchart TB
     %% Nodes (declare humans early for visual priority)
     USERS[Users / Operators]
