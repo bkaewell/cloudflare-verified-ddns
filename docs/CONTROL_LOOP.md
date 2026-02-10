@@ -28,13 +28,13 @@ config:
 graph TD
     Start([Init]) --> Loop{Supervisor<br>Loop ♾️}
 
-    Loop --> Update(Reconcile DNS 🌐])
+    Loop --> Update[Reconcile DNS 🌐]
 
     Readiness["Readiness FSM 🚦<br/>⚪ INIT<br/>🟡 PROBING<br/>💚 READY<br/>🔴 NOT_READY"] --> Update
 
     Readiness --> Poll
 
-    Update --> Poll([Adaptive Polling Engine 🦧])
+    Update --> Poll[Adaptive Polling Engine 🦧]
 
     Poll -->  |"Polling Speed"| Sleep[Sleep → Next Cycle]
 
