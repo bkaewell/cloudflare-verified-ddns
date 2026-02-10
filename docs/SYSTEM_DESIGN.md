@@ -29,7 +29,7 @@ The system is intentionally built around four interlocking goals:
    - Low CPU/memory footprint → suitable for Raspberry Pi, tiny VPS, home server
 
 4. **Reliability**  
-   Primary non-functional requirement — the system works consistently under normal conditions and **gracefully handles and recovers from failures** without manual intervention.  
+   Primary non-functional requirement: the system works consistently under normal conditions and **gracefully handles and recovers from failures** without manual intervention.  
    → Measured uptime consistently ~99.9 % or better (via `uptime.json`: READY loops / total loops)  
    → Aspirational target: 5-nines (99.999 %, ~5 min downtime/year)  
    → Realistic current target: 99.9 % (~8.76 hours downtime/year)
