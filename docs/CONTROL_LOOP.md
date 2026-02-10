@@ -30,7 +30,9 @@ graph TD
 
     Loop --> Update[Reconcile DNS 🌐]
 
-    Readiness["Readiness FSM 🚦<br/>⚪ INIT<br/>🟡 PROBING<br/>💚 READY<br/>🔴 NOT_READY"] --> Update
+    Readiness[Readiness FSM 🚦]
+    
+    %%<br/>⚪ INIT<br/>🟡 PROBING<br/>💚 READY<br/>🔴 NOT_READY"] --> Update
 
     Update --> Poll[Adaptive Polling Engine 🦧]
 
