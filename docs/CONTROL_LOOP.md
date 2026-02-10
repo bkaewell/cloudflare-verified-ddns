@@ -32,13 +32,13 @@ graph TD
 
     Update --> Poll[Adaptive Polling Engine 🦧]
 
-    Readiness["Readiness FSM 🚦<br/>⚪ INIT     <br/>🟡 PROBING  <br/>💚 READY    <br/>🔴 NOT_READY"] --> Update
-
-    Readiness --> Poll
-
     Poll -->  |"Polling Speed"| Sleep[Sleep → Next Cycle]
 
     Sleep -->  Loop
+
+    Readiness["Readiness FSM 🚦<br/>⚪ INIT<br/>🟡 PROBING<br/>💚 READY<br/>🔴 NOT_READY"] --> Update
+
+    Readiness --> Poll
 
     %% Visual highlights
     style Poll fill:#fff3e6,stroke:#cc6600,stroke-width:3px,rx:12,ry:12
