@@ -17,6 +17,43 @@ The top-level infinite loop (`run_supervisor_loop`) is the heartbeat of the agen
 
 ## Supervisor Loop Flow
 
+
+```mermaid
+---
+title: Main Supervisor Loop
+config:
+   look: classic
+   theme: 'default'
+---
+graph TD
+    Start([Init]) --> Loop{Supervisor<br>Loop ♾️}
+
+    Loop --> Update(Reconcile DNS 🌐])
+
+    Readiness["Readiness FSM 🚦<br/>⚪ INIT<br/>🟡 PROBING<br/>💚 READY<br/>🔴 NOT_READY"] --> Update
+
+    Readiness --> Poll
+
+    Update --> Poll([Adaptive Polling Engine 🦧])
+
+    Poll -->  |"Polling Speed"| Sleep[Sleep → Next Cycle]
+
+    Sleep -->  Loop
+
+    %% Visual highlights
+    style Poll fill:#fff3e6,stroke:#cc6600,stroke-width:3px,rx:12,ry:12
+    style Loop fill:#f0f8ff,stroke:#004080,stroke-width:3px,rx:12,ry:12
+    style Update fill:#e6f3ff,stroke:#0066cc,stroke-width:2px
+    style Start fill:#cce5ff,stroke:#004080,rx:12,ry:12
+    style Sleep fill:#f8f9fa,stroke:#666,stroke-width:2px
+
+    linkStyle default stroke:#666,stroke-width:2px
+```
+
+
+
+
+
 ```mermaid
 flowchart TD
     Start((Start)) --> LoopStart[Loop Start]
