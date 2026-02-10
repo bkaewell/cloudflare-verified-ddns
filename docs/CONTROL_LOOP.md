@@ -2,18 +2,20 @@
 
 ## Overview
 
-The top-level infinite loop (`run_supervisor_loop`) is the heartbeat of the agent...
+The top-level infinite loop (`run_supervisor_loop`) is the heartbeat of the agent.
 
-**Responsibilities:**
-- Run the DDNS cycle repeatedly
-- Capture & log unhandled exceptions
-- Delegate next-sleep decision to `SchedulingPolicy`
-- Maintain adaptive polling cadence
+**Responsibilities**
+- Repeatedly execute the DDNS control cycle
+- Capture and log unhandled exceptions without crashing
+- Delegate next-poll timing to the adaptive scheduler
+- Maintain steady, state-aware cadence for long-running operation
 
-**Key properties:**
-- Never exits (lifecycle managed externally by Docker)
-- Exceptions are contained and surfaced via telemetry
-- Scheduling is adaptive to avoid API abuse and tight loops
+**Key Properties**
+- Never exits — lifecycle managed externally by Docker (`restart: unless-stopped`)
+- Exceptions are contained and surfaced via telemetry/logging
+- Polling adapts automatically to system confidence (readiness state)
+
+---
 
 ## Supervisor Loop Flow
 
@@ -44,7 +46,11 @@ graph TD
     class Update,Poll,Loop,Start,Sleep,Readiness all
 ```
 
+---
+
 ### Readiness FSM
+
+*State machine that determines system trust level and directly drives polling speed. Fast poll during uncertainty/recovery; slow poll when stable.*
 
 ```mermaid
 ---
@@ -81,19 +87,18 @@ stateDiagram-v2
     class ANY,INIT,PROBING,READY,NOT_READY all
 ```
 
-### Transitions & meaning:
+### Transitions & Meaning:
  - INIT → PROBING — Startup or WAN restored
  - PROBING → READY — 2 consecutive stable IP confirmations
  - PROBING → PROBING — IP flapping detected
  - Any → NOT_READY — WAN path failure (1.1.1.1:443 unreachable)
  - NOT_READY → PROBING — WAN path restored
 
- > The readiness state is fed directly to the scheduler to choose fast poll (PROBING/NOT_READY) vs slow poll (READY).
-
-
-
+---
 
 ### Adaptive Polling Engine (Scheduler)
+
+*Readiness state directly controls polling speed: fast during uncertainty/recovery for rapid convergence, slow when stable to minimize load and API calls. Jitter prevents synchronized spikes.*
 
 ```mermaid
 ---
@@ -132,10 +137,13 @@ graph LR
 
 > This simple state-based rule creates intelligent, self-adapting polling without complex timers or external schedulers.
 
+---
 
-### Why this design?
+**Why this design?**
 - No external cron/systemd timer → single-process simplicity
-- Adaptive cadence balances freshness vs rate-limiting
+- Adaptive cadence balances freshness vs API rate-limiting
 - Exception containment prevents crash loops
 - Jitter avoids thundering herd
 - Fully observable via structured logs (cadence, sleep, jitter)
+
+ > This creates a self-optimizing loop that balances freshness, efficiency, and resilience without manual tuning or complex configuration.
