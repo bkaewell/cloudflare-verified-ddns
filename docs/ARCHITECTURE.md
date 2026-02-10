@@ -118,29 +118,7 @@ flowchart TB
 
 
 
-```mermaid
-stateDiagram-v2
-    direction LR
 
-    INIT: ⚪ INIT<br/>No assumptions
-    PROBING: 🟡 PROBING<br/>Observational only
-    READY: 💚 READY<br/>Safe to act
-    NOT_READY: 🔴 NOT_READY<br/>Known failure
-
-    [*] --> INIT
-
-    INIT --> PROBING : WAN OK
-    NOT_READY --> PROBING : WAN OK
-
-    PROBING --> READY : Stable IP<br/>confirmed
-    PROBING --> PROBING : IP flapping
-
-    READY --> READY : WAN OK
-
-    %% Global failure invariant
-    state "Any State" as ANY
-    ANY --> NOT_READY : WAN Failure
-```
 
 
 

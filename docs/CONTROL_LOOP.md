@@ -17,7 +17,6 @@ The top-level infinite loop (`run_supervisor_loop`) is the heartbeat of the agen
 
 ## Supervisor Loop Flow
 
-
 ```mermaid
 ---
 title: 
@@ -28,44 +27,63 @@ config:
 graph TD
     Start([Init]) --> Loop{Supervisor<br>Loop ♾️}
     Loop --> Update[Reconcile DNS 🌐]
-    Readiness[Readiness FSM 🚦] --> Poll
+    Readiness[Readiness FSM 🚦] --> |"Readiness"|Poll
     %%<br/>⚪ INIT<br/>🟡 PROBING<br/>💚 READY<br/>🔴 NOT_READY"] --> Update
     Update --> Poll[Adaptive Polling Engine 🦧]
     Poll -->  |"Polling Speed"| Sleep[Sleep 💤]
     Sleep -->  Loop
-    Readiness --> Update
+    Readiness --> |"Readiness"| Update
 
     %% Visual highlights
-    %%style Poll fill:#fff3e6,stroke:#cc6600,stroke-width:3px,rx:12,ry:12
-    %%style Loop fill:#f0f8ff,stroke:#004080,stroke-width:3px,rx:12,ry:12
-    %%style Update fill:#e6f3ff,stroke:#0066cc,stroke-width:2px
-    %%style Start fill:#cce5ff,stroke:#004080,rx:12,ry:12
-    %%style Sleep fill:#f8f9fa,stroke:#666,stroke-width:2px
-    %%style Readiness 
-
     classDef all fill:#e6f3ff,stroke:#0066cc,stroke-width:2px
 
     class Update,Poll,Loop,Start,Sleep,Readiness all
 ```
 
-
-
-
+## Readiness FSM
 
 ```mermaid
-flowchart TD
-    Start((Start)) --> LoopStart[Loop Start]
-    LoopStart --> Cycle["ddns.run_cycle()"]
-    Cycle --> Success{No Exception?}
-    Success -->|Yes| MeasureTime[Measure elapsed]
-    Success -->|No| LogError[Log exception<br>supervisor_state = ERROR]
-    MeasureTime --> Decide["scheduler.next_schedule()"]
-    LogError --> Decide
-    Decide --> Sleep["time.sleep(sleep_for)"]
-    Sleep --> LoopStart
+stateDiagram-v2
+    direction LR
+
+    INIT: ⚪ INIT<br/>No assumptions
+    PROBING: 🟡 PROBING<br/>Observational only
+    READY: 💚 READY<br/>Safe to act
+    NOT_READY: 🔴 NOT_READY<br/>Known failure
+
+    [*] --> INIT
+
+    INIT --> PROBING : WAN OK
+    NOT_READY --> PROBING : WAN OK
+
+    PROBING --> READY : Stable IP<br/>confirmed
+    PROBING --> PROBING : IP flapping<br/>detected
+
+    READY --> READY : WAN OK
+
+    %% Global failure invariant
+    state "Any State" as ANY
+    ANY --> NOT_READY : WAN failure
+
+    %% Visual highlights
+    classDef all fill:#e6f3ff,stroke:#0066cc,stroke-width:2px
+
+    class ANY,INIT,PROBING,READY,NOT_READY all
 ```
 
-## Polling Cadence & Scheduler
+### Transitions & meaning:
+ - INIT → PROBING — Startup or WAN restored
+ - PROBING → READY — 2 consecutive stable IP confirmations
+ - PROBING → PROBING — IP flapping detected
+ - Any → NOT_READY — WAN path failure (1.1.1.1:443 unreachable)
+ - NOT_READY → PROBING — WAN path restored
+
+ > The readiness state is fed directly to the scheduler to choose fast poll (PROBING/NOT_READY) vs slow poll (READY).
+
+
+
+
+## Adaptive Polling Engine
 
 ```mermaid
 stateDiagram-v2
@@ -81,6 +99,43 @@ stateDiagram-v2
         RECOVERY --> FAST_POLL
     }
 ```
+
+```mermaid
+---
+title: Readiness State → Polling Speed
+config:
+  look: classic
+  theme: default
+---
+graph LR
+    subgraph "Readiness FSM States"
+        PROBING[PROBING<br>🟡 Observational / Recovery]
+        NOT_READY[NOT_READY<br>🔴 Known failure]
+        READY[READY<br>💚 Stable & safe]
+    end
+
+    PROBING --> FAST_POLL["FAST Poll<br>~30 s + jitter"]
+    NOT_READY --> FAST_POLL
+
+    READY --> SLOW_POLL["SLOW Poll<br>~120 s + jitter"]
+
+    %% Styling to emphasize impact
+    classDef fast fill:#fff0e6,stroke:#e67e22,stroke-width:3px,rx:12,ry:12
+    classDef slow fill:#e6ffe6,stroke:#27ae60,stroke-width:3px,rx:12,ry:12
+    classDef state fill:#f0f8ff,stroke:#2980b9,stroke-width:2px,rx:10,ry:10
+
+    class PROBING,NOT_READY state
+    class READY state
+    class FAST_POLL fast
+    class SLOW_POLL slow
+
+    linkStyle default stroke:#555,stroke-width:2px
+```
+
+
+
+
+
 
 - `FAST_POLL` (~30 s) during `PROBING` → quick convergence
 - `SLOW_POLL` (~120 s) in steady state → reduce API load
