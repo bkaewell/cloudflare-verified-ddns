@@ -2,7 +2,7 @@
 
 ## Overview
 
-The top-level infinite loop (`run_supervisor_loop`) is the heartbeat of the agent.
+The top-level infinite loop (`run_supervisor_loop`) is the heartbeat of the agent...
 
 **Responsibilities:**
 - Run the DDNS cycle repeatedly
@@ -17,9 +17,13 @@ The top-level infinite loop (`run_supervisor_loop`) is the heartbeat of the agen
 
 ## Supervisor Loop Flow
 
+### Main Supervisor Loop
+
+*Infinite control loop that runs the DDNS cycle, handles exceptions, and adaptively schedules the next poll based on readiness state and elapsed time. Never exits — lifecycle managed by Docker's restart policy.*
+
 ```mermaid
 ---
-title: 
+title: Main Supervisor Loop
 config:
    look: classic
    theme: 'default'
@@ -40,9 +44,15 @@ graph TD
     class Update,Poll,Loop,Start,Sleep,Readiness all
 ```
 
-## Readiness FSM
+### Readiness FSM
 
 ```mermaid
+---
+title: Readiness FSM
+config:
+   look: classic
+   theme: 'default'
+---
 stateDiagram-v2
     direction LR
 
@@ -83,35 +93,20 @@ stateDiagram-v2
 
 
 
-## Adaptive Polling Engine
-
-```mermaid
-stateDiagram-v2
-    direction LR
-    [*] --> PROBING
-    PROBING --> READY: 2 consecutive<br/> IP confirmations
-    READY --> RECOVERY: Recovery policy<br/> triggered
-    RECOVERY --> PROBING: Reset
-
-    state Cadence {
-        PROBING --> FAST_POLL
-        READY --> SLOW_POLL
-        RECOVERY --> FAST_POLL
-    }
-```
+### Adaptive Polling Engine (Scheduler)
 
 ```mermaid
 ---
-title: Readiness State → Polling Speed
+title: Adaptive Polling Engine (Scheduler)
 config:
-  look: classic
-  theme: default
+   look: classic
+   theme: 'default'
 ---
 graph LR
-    subgraph "Readiness FSM States"
-        PROBING[PROBING<br>🟡 Observational / Recovery]
-        NOT_READY[NOT_READY<br>🔴 Known failure]
-        READY[READY<br>💚 Stable & safe]
+    subgraph "Readiness FSM"
+        PROBING[🟡 PROBING<br>Observational / Recovery]
+        NOT_READY[🔴 NOT_READY<br>Known failure]
+        READY[💚 READY<br> Steady state]
     end
 
     PROBING --> FAST_POLL["FAST Poll<br>~30 s + jitter"]
@@ -122,24 +117,21 @@ graph LR
     %% Styling to emphasize impact
     classDef fast fill:#fff0e6,stroke:#e67e22,stroke-width:3px,rx:12,ry:12
     classDef slow fill:#e6ffe6,stroke:#27ae60,stroke-width:3px,rx:12,ry:12
-    classDef state fill:#f0f8ff,stroke:#2980b9,stroke-width:2px,rx:10,ry:10
+    classDef state fill:#e6f3ff,stroke:#0066cc,stroke-width:2px
 
-    class PROBING,NOT_READY state
-    class READY state
+    class PROBING,NOT_READY,READY state
     class FAST_POLL fast
     class SLOW_POLL slow
 
     linkStyle default stroke:#555,stroke-width:2px
 ```
 
-
-
-
-
-
-- `FAST_POLL` (~30 s) during `PROBING` → quick convergence
-- `SLOW_POLL` (~120 s) in steady state → reduce API load
+- `FAST_POLL` (~30 s) during `PROBING`  and `NOT_READY` → quick convergence
+- `SLOW_POLL` (~120 s) in `READY` steady state → reduce API load
 - Jitter (0–10 s) prevents synchronized polling spikes if multiple instances run
+
+> This simple state-based rule creates intelligent, self-adapting polling without complex timers or external schedulers.
+
 
 ### Why this design?
 - No external cron/systemd timer → single-process simplicity
