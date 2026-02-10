@@ -115,11 +115,12 @@ flowchart TB
 
 ```mermaid
 stateDiagram-v2
-    INIT: ⚪ INIT\nStartup\nNo assumptions
-    PROBING: 🟡 PROBING\nObservational only
-    READY: 💚 READY\nSafe to act
-    NOT_READY: 🔴 NOT_READY\nKnown failure
     direction TB
+
+    INIT: ⚪ INIT<br/>Startup<br/>No assumptions
+    PROBING: 🟡 PROBING<br/>Observational only
+    READY: 💚 READY<br/>Safe to act
+    NOT_READY: 🔴 NOT_READY<br/>Known failure
 
     [*] --> INIT
 
