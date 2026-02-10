@@ -24,7 +24,7 @@ flowchart TD
     Cycle --> Success{No Exception?}
     Success -->|Yes| MeasureTime[Measure elapsed]
     Success -->|No| LogError[Log exception<br>supervisor_state = ERROR]
-    MeasureTime --> Decide[ "scheduler.next_schedule()" ]
+    MeasureTime --> Decide["scheduler.next_schedule()"]
     LogError --> Decide
     Decide --> Sleep["time.sleep(sleep_for)"]
     Sleep --> LoopStart
@@ -41,9 +41,9 @@ stateDiagram-v2
     RECOVERY --> PROBING: Reset
 
     state Cadence {
-        PROBING --> Fast[Fast Poll: ~35–40 s]
-        READY --> Slow[Slow Poll: 120 s ± jitter]
-        RECOVERY --> Fast
+        PROBING --> FAST_POLL
+        READY --> SLOW_POLL
+        RECOVERY --> FAST_POLL
     }
 ```
 
