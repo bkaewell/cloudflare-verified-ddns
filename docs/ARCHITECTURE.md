@@ -113,30 +113,9 @@ flowchart TB
 
 
 
-```mermaid
-stateDiagram-v2
-    direction TB
 
-    INIT: ⚪ INIT<br/>Startup<br/>No assumptions
-    PROBING: 🟡 PROBING<br/>Observational only
-    READY: 💚 READY<br/>Safe to act
-    NOT_READY: 🔴 NOT_READY<br/>Known failure
 
-    [*] --> INIT
 
-    INIT --> PROBING : WAN OK
-    NOT_READY --> PROBING : WAN OK
-
-    PROBING --> READY : WAN OK<br/>allow_promotion = true
-    PROBING --> PROBING : WAN OK<br/>allow_promotion = false
-
-    INIT --> NOT_READY : WAN failure
-    PROBING --> NOT_READY : WAN failure
-    READY --> NOT_READY : WAN failure
-
-    READY --> READY : WAN OK
-
-```
 
 
 ```mermaid
@@ -153,8 +132,8 @@ stateDiagram-v2
     INIT --> PROBING : WAN OK
     NOT_READY --> PROBING : WAN OK
 
-    PROBING --> READY : allow_promotion<br/> == True
-    PROBING --> PROBING : allow_promotion<br/> == False
+    PROBING --> READY : Stable IP<br/>confirmed
+    PROBING --> PROBING : IP flapping
 
     READY --> READY : WAN OK
 
@@ -165,29 +144,7 @@ stateDiagram-v2
 
 
 
-```mermaid
-stateDiagram-v2
-    direction TB
 
-    INIT: ⚪ INIT<br/>Startup<br/>No assumptions
-    PROBING: 🟡 PROBING<br/>Observational only
-    READY: 💚 READY<br/>Safe to act
-    NOT_READY: 🔴 NOT_READY<br/>Known failure
-
-    [*] --> INIT
-
-    INIT --> PROBING : WAN OK
-    NOT_READY --> PROBING : WAN OK
-
-    PROBING --> READY : Allow promotion<br/> == True
-    PROBING --> PROBING : Allow promotion<br/> == False
-
-    READY --> READY : WAN OK
-
-    %% Global failure invariant
-    state "Any State" as ANY
-    ANY --> NOT_READY : WAN failure
-```
 
 
 ## Overview
