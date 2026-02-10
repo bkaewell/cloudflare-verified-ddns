@@ -28,37 +28,52 @@ The system is intentionally built around four interlocking goals:
    - Named volume for cache → zero disk writes to container layer  
    - Low CPU/memory footprint → suitable for Raspberry Pi, tiny VPS, home server
 
-4. **Reliability** (the primary non-functional requirement)
+4. **Reliability**  
+   Primary non-functional requirement — the system works consistently under normal conditions and **gracefully handles and recovers from failures** without manual intervention.  
+   → Measured uptime consistently ~99.9 % or better (via `uptime.json`: READY loops / total loops)  
+   → Aspirational target: 5-nines (99.999 %, ~5 min downtime/year)  
+   → Realistic current target: 99.9 % (~8.76 hours downtime/year)
 
-   Broken into three tightly related concepts:
+   **Important caveat**: Availability is ultimately limited by the **weakest link in the chain** (power company and ISP reliability).
 
-   - **Reliability** — the system works consistently under normal conditions  
-     → `restart: unless-stopped` policy  
-     → readiness FSM (probing → ready transition after 2 confirmations)  
-     → persistent JSON cache + uptime tracking
+   ### Reliability Goals & Observability
 
-   - **Fault Tolerance** — the system maintains composure when things go wrong  
-     → Recovery Controller + Recovery Policy (handles transient failures)  
-     → Self-healing: retries, backoff, circuit-breaker-like logic  
-     → Smart plug integration (HTTP GET to toggle power on full failure)
+   - **Target Availability Levels**
 
-   - **Redundancy** — backup mechanisms reduce single points of failure  
-     → Dual power (wall + UPS battery backup)  
-     → Persistent volume for cache (survives container restarts/rebuilds)  
-     → Multiple public IP sources (ipify, ifconfig.me, icanhazip, ipecho)  
-     → DoH verification before update (avoids unnecessary Cloudflare writes)
+     | Availability | Downtime per year | Classification       | Current status                  | Notes / Measurement |
+     |--------------|-------------------|----------------------|---------------------------------|----------------------|
+     | 99.999 %     | ~5 minutes        | 5-nines (aspirational) | Not yet achieved               | Industry gold standard |
+     | **99.9 %**   | ~8.76 hours       | **Current realistic target** | **Achieved** (ongoing)         | Measured via `uptime.json` |
+     | 99 %         | ~3.65 days        | Minimum acceptable   | Exceeded comfortably           | Baseline for self-hosted |
 
-**Golden target (aspirational):** 5-nines (99.999 %) availability  
-→ 5 minutes of downtime per year  
-→ Current realistic target: **99.9 %** (~8.76 hours downtime/year)  
-→ Measured via uptime.json (total loops vs READY loops)
+   - **Service Level Objective (SLO)**  
+     Internal measurable target: Public IP request latency < 100 ms at p99.9  
+     → Achieved via fast HTTP GET + caching  
+     → Loop runtime consistently ~100 ms in production
 
-**SLO / SLA discussion**  
-- **SLO** (internal goal): <100 ms response time to public IP request at p99.9  
-  → Currently achieved via fast HTTP GET + caching  
-- **SLA** (external promise to users): **not committed yet**  
-  → Too early for formal uptime guarantees  
-  → Focus remains on internal observability (uptime %, cache hit rate, loop latency)
+   - **Service Level Agreement (SLA)**  
+     Formal external promise to users: **None committed**  
+     → Early-stage OSS; no contractual uptime/latency guarantees  
+     → Focus on internal observability instead
+
+   - **How Reliability Is Achieved**
+
+     - **Redundancy**  
+       - Multiple public IP providers  
+       - Dual power (wall + UPS battery backup)  
+       - Persistent volume for cache & uptime
+
+     - **Fault Tolerance & Self-Healing**  
+       - Readiness FSM (probes → READY after 2 confirmations)  
+       - Recovery Controller + configurable Recovery Policy  
+       - Smart-plug power toggle (HTTP GET) for hardware reset
+
+     - **Observability**  
+       - Uptime % in `uptime.json`  
+       - Cache hit/miss/expired/refresh logging  
+       - Loop timing & RTT metrics in logs
+
+This combination delivers **high reliability with minimal operational overhead**, suitable for a self-hosted high-availability VPN endpoint — while acknowledging external utility limits.
 
 ## Core Data Flow Elements
 
@@ -100,11 +115,3 @@ The system can be understood through three fundamental activities:
 - **Why multiple IP sources** → no single point of failure for IP detection
 
 This design prioritizes **simplicity + observability + resilience** over premature optimization or over-engineering.
-
-Future work candidates:
-- Prometheus metrics endpoint
-- Multi-provider DNS support (not just Cloudflare)
-- Multi-arch images (amd64/arm64/v7)
-- GitHub Actions CI (lint, test, build, push)
-
-Feedback & contributions welcome — MIT licensed.
