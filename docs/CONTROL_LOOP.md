@@ -40,7 +40,7 @@ graph TD
 
     Sleep -->  Loop
 
-    %% Readiness --> Poll
+    Readiness --> Update
 
     %% Visual highlights
     style Poll fill:#fff3e6,stroke:#cc6600,stroke-width:3px,rx:12,ry:12
