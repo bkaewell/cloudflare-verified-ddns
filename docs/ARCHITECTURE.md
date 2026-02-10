@@ -176,13 +176,13 @@ stateDiagram-v2
 
     [*] --> INIT
 
-    INIT --> PROBING
-    NOT_READY --> PROBING
+    INIT --> PROBING : WAN OK
+    NOT_READY --> PROBING : WAN OK
 
-    PROBING --> READY : allow_promotion
-    PROBING --> PROBING
+    PROBING --> READY : Allow promotion<br/> == True
+    PROBING --> PROBING : Allow promotion<br/> == False
 
-    READY --> READY
+    READY --> READY : WAN OK
 
     %% Global failure invariant
     state "Any State" as ANY
