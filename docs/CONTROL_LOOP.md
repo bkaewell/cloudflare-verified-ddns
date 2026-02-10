@@ -2,7 +2,7 @@
 
 ## Overview
 
-The top-level infinite loop (`run_supervisor_loop`) is the heartbeat of the agent.
+The top-level infinite loop (`__main__.py::run_supervisor_loop()`) is the heartbeat of the agent.
 
 **Responsibilities**
 - Repeatedly execute the DDNS control cycle
@@ -21,7 +21,7 @@ The top-level infinite loop (`run_supervisor_loop`) is the heartbeat of the agen
 
 ### Main Supervisor Loop
 
-*Infinite control loop that runs the DDNS cycle, handles exceptions, and adaptively schedules the next poll based on readiness state and elapsed time. Never exits — lifecycle managed by Docker's restart policy.*
+*Infinite control loop that runs the DDNS cycle (`ddns_controller.py::DDNSController::run_cycle()`), handles exceptions, and adaptively schedules the next poll based on readiness state and elapsed time. Never exits — lifecycle managed by Docker's restart policy.*
 
 ```mermaid
 ---
@@ -50,7 +50,7 @@ graph TD
 
 ### Readiness FSM
 
-*State machine that determines system trust level and directly drives polling speed. Fast poll during uncertainty/recovery; slow poll when stable.*
+*State machine (`readiness.py::ReadinessController::advance()`)that determines system trust level and directly drives polling speed. Fast poll during uncertainty/recovery; slow poll when stable.*
 
 ```mermaid
 ---
@@ -87,7 +87,7 @@ stateDiagram-v2
     class ANY,INIT,PROBING,READY,NOT_READY all
 ```
 
-### Transitions & Meaning:
+**Transitions & Meaning:**
  - INIT → PROBING — Startup or WAN restored
  - PROBING → READY — 2 consecutive stable IP confirmations
  - PROBING → PROBING — IP flapping detected
@@ -98,7 +98,7 @@ stateDiagram-v2
 
 ### Adaptive Polling Engine (Scheduler)
 
-*Readiness state directly controls polling speed: fast during uncertainty/recovery for rapid convergence, slow when stable to minimize load and API calls. Jitter prevents synchronized spikes.*
+*Readiness state directly controls polling speed (`scheduling_policy.py::SchedulingPolicy::next_schedule()`): fast during uncertainty/recovery for rapid convergence, slow when stable to minimize load and API calls. Jitter prevents synchronized spikes.*
 
 ```mermaid
 ---
@@ -131,6 +131,7 @@ graph LR
     linkStyle default stroke:#555,stroke-width:2px
 ```
 
+**Adaptive Polling Cadence:**
 - `FAST_POLL` (~30 s) during `PROBING`  and `NOT_READY` → quick convergence
 - `SLOW_POLL` (~120 s) in `READY` steady state → reduce API load
 - Jitter (0–10 s) prevents synchronized polling spikes if multiple instances run
