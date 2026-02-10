@@ -143,6 +143,11 @@ stateDiagram-v2
 stateDiagram-v2
     direction LR
 
+    INIT: ⚪ INIT<br/>Startup<br/>No assumptions
+    PROBING: 🟡 PROBING<br/>Observational only
+    READY: 💚 READY<br/>Safe to act
+    NOT_READY: 🔴 NOT_READY<br/>Known failure
+
     [*] --> INIT
 
     INIT --> PROBING
@@ -158,6 +163,31 @@ stateDiagram-v2
     ANY --> NOT_READY : WAN failure
 ```
 
+
+
+```mermaid
+stateDiagram-v2
+    direction TB
+
+    INIT: ⚪ INIT<br/>Startup<br/>No assumptions
+    PROBING: 🟡 PROBING<br/>Observational only
+    READY: 💚 READY<br/>Safe to act
+    NOT_READY: 🔴 NOT_READY<br/>Known failure
+
+    [*] --> INIT
+
+    INIT --> PROBING
+    NOT_READY --> PROBING
+
+    PROBING --> READY : allow_promotion
+    PROBING --> PROBING
+
+    READY --> READY
+
+    %% Global failure invariant
+    state "Any State" as ANY
+    ANY --> NOT_READY : WAN failure
+```
 
 
 ## Overview
