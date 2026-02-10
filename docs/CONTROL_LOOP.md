@@ -4,13 +4,13 @@
 
 The top-level infinite loop (`__main__.py::run_supervisor_loop()`) is the heartbeat of the agent.
 
-**Responsibilities**
+**Responsibilities:**
 - Repeatedly execute the DDNS control cycle
 - Capture and log unhandled exceptions without crashing
 - Delegate next-poll timing to the adaptive scheduler
 - Maintain steady, state-aware cadence for long-running operation
 
-**Key Properties**
+**Key Properties:**
 - Never exits — lifecycle managed externally by Docker (`restart: unless-stopped`)
 - Exceptions are contained and surfaced via telemetry/logging
 - Polling adapts automatically to system confidence (readiness state)
