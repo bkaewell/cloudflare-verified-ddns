@@ -139,7 +139,24 @@ stateDiagram-v2
 ```
 
 
+```mermaid
+stateDiagram-v2
+    direction LR
 
+    [*] --> INIT
+
+    INIT --> PROBING
+    NOT_READY --> PROBING
+
+    PROBING --> READY : allow_promotion
+    PROBING --> PROBING
+
+    READY --> READY
+
+    %% Global failure invariant
+    state "Any State" as ANY
+    ANY --> NOT_READY : WAN failure
+```
 
 
 
