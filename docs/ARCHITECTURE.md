@@ -115,6 +115,10 @@ flowchart TB
 
 ```mermaid
 stateDiagram-v2
+    INIT: ⚪ INIT\nStartup\nNo assumptions
+    PROBING: 🟡 PROBING\nObservational only
+    READY: 💚 READY\nSafe to act
+    NOT_READY: 🔴 NOT_READY\nKnown failure
     direction TB
 
     [*] --> INIT
@@ -131,30 +135,6 @@ stateDiagram-v2
 
     READY --> READY : WAN OK
 
-    %% State annotations
-    state INIT {
-        ⚪ INIT
-        Startup
-        No assumptions
-    }
-
-    state PROBING {
-        🟡 PROBING
-        Observational only
-        Stability not proven
-    }
-
-    state READY {
-        💚 READY
-        Safe to act
-        Side effects allowed
-    }
-
-    state NOT_READY {
-        🔴 NOT_READY
-        Known failure
-        Observe only
-    }
 ```
 
 
