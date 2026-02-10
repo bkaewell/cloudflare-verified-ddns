@@ -34,7 +34,7 @@ graph TD
     Start([Init]) --> Loop{Supervisor<br>Loop ♾️}
     Loop --> Update[Reconcile DNS 🌐]
     Readiness[Readiness FSM 🚦] --> |"Readiness"|Poll
-    %%<br/>⚪ INIT<br/>🟡 PROBING<br/>💚 READY<br/>🔴 NOT_READY"] --> Update
+    %%<br>⚪ INIT<br>🟡 PROBING<br>💚 READY<br>🔴 NOT_READY"] --> Update
     Update --> Poll[Adaptive Polling Engine 🦧]
     Poll -->  |"Polling Speed"| Sleep[Sleep 💤]
     Sleep -->  Loop
@@ -62,18 +62,18 @@ config:
 stateDiagram-v2
     direction LR
 
-    INIT: ⚪ INIT<br/>No assumptions
-    PROBING: 🟡 PROBING<br/>Observational only
-    READY: 💚 READY<br/>Safe to act
-    NOT_READY: 🔴 NOT_READY<br/>Known failure
+    INIT: ⚪ INIT<br>No assumptions
+    PROBING: 🟡 PROBING<br>Observational /<br>Recovery
+    READY: 💚 READY<br>Safe to act
+    NOT_READY: 🔴 NOT_READY<br>Known failure
 
     [*] --> INIT
 
     INIT --> PROBING : WAN OK
     NOT_READY --> PROBING : WAN OK
 
-    PROBING --> READY : Stable IP<br/>confirmed
-    PROBING --> PROBING : IP flapping<br/>detected
+    PROBING --> READY : Stable IP<br>confirmed
+    PROBING --> PROBING : IP flapping<br>detected
 
     READY --> READY : WAN OK
 
@@ -109,7 +109,7 @@ config:
 ---
 graph LR
     subgraph "Readiness FSM"
-        PROBING[🟡 PROBING<br>Observational / Recovery]
+        PROBING[🟡 PROBING<br>Observational /<br> Recovery]
         NOT_READY[🔴 NOT_READY<br>Known failure]
         READY[💚 READY<br> Steady state]
     end
