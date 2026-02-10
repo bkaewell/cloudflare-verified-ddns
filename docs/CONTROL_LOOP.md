@@ -20,7 +20,7 @@ The top-level infinite loop (`run_supervisor_loop`) is the heartbeat of the agen
 
 ```mermaid
 ---
-%%title: Main Supervisor Loop
+title: 
 config:
    look: classic
    theme: 'default'
