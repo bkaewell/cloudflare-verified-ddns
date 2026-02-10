@@ -43,9 +43,9 @@ graph TD
     %%style Sleep fill:#f8f9fa,stroke:#666,stroke-width:2px
     %%style Readiness 
 
-    style Update,Poll,Loop,Start,Sleep,Readiness fill:#e6f3ff,stroke:#0066cc,stroke-width:2px
+    classDef all fill:#e6f3ff,stroke:#0066cc,stroke-width:2px
 
-    %%linkStyle default stroke:#666,stroke-width:2px
+    class Update,Poll,Loop,Start,Sleep,Readiness all
 ```
 
 
