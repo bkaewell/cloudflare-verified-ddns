@@ -127,8 +127,8 @@ stateDiagram-v2
     INIT --> PROBING : WAN OK
     NOT_READY --> PROBING : WAN OK
 
-    PROBING --> READY : WAN OK\nallow_promotion = true
-    PROBING --> PROBING : WAN OK\nallow_promotion = false
+    PROBING --> READY : WAN OK<br/>allow_promotion = true
+    PROBING --> PROBING : WAN OK<br/>allow_promotion = false
 
     INIT --> NOT_READY : WAN failure
     PROBING --> NOT_READY : WAN failure
