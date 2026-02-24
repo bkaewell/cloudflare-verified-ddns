@@ -2,35 +2,20 @@
 name = "cloudflare-verified-ddns"
 version = "0.1.0"
 description = "Lightweight, reliable Dynamic DNS updater for Cloudflare"
-authors = [
-    {name = "Brian Kaewell", email = "briankaewell@gmail.com"}
-]
-license = {text = "MIT"}
 readme = "README.md"
-requires-python = ">=3.10, <4.0"
+requires-python = ">=3.10"
 dependencies = [
-    "python-dotenv (>=1.1.1, <2.0.0)",
-    "requests (>=2.32.5, <3.0.0)",
-]
-
-packages = [
-    { include = "cloudflare-verified-ddns", from = "src" }
+    "python-dotenv>=1.1.1",
+    "requests>=2.32.5",
 ]
 
 [project.scripts]
 cloudflare-verified-ddns = "cloudflare_verified_ddns.__main__:main"
 
-[build-system]
-requires = ["poetry-core>=2.0.0, <3.0.0"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.4.2"
-responses = "^0.25.8"
-pytest-cov = "^6.3.0"
-black = "^25.1.0"
-
-[tool.pytest.ini_options]
-# Tell pytest where to find source and test files
-pythonpath = ["src"]
-testpaths = ["tests"]
+[dependency-groups]
+dev = [
+  "pytest>=8.4.2",
+  "responses>=0.25.8",
+  "pytest-cov>=6.3.0",
+  "black>=25.1.0",
+]
