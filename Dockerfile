@@ -1,77 +1,89 @@
-# Base Image
-FROM python:3.12-slim AS base
+# ============================================================
+# Multi-stage Dockerfile for cloudflare-verified-ddns
+# ============================================================
+# Goals:
+#   • Reproducible & cache-friendly builds
+#   • Minimal final image size (alpine + only runtime deps)
+#   • Security: non-root user in final stage
+#   • Fast startup: bytecode compilation + copied dependencies
+# ============================================================
 
-# Set working directory
+# ───────────────────────────────────────────────────────────
+# Stage 1: Build stage
+# ───────────────────────────────────────────────────────────
+# - Bootstraps a minimal Python environment using uv
+# - Installs locked dependencies into a local virtualenv
+# - Uses Docker build cache aggressively
+# - Generates .pyc files for faster startup (trade-off: slightly larger image)
+# ───────────────────────────────────────────────────────────
+FROM python:3.13-alpine AS build
+
+# --- Tools / Bootstrapping ---
+# Using latest uv from official image (consider pinning digest or tag in production)
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+
 WORKDIR /app
 
-# =============================================
-# 1. Install System Dependencies (single layer)
-# =============================================
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl build-essential tzdata \
-    && rm -rf /var/lib/apt/lists/*
+# --- Copy dependency manifests first (maximizes cache hits) ---
+COPY pyproject.toml uv.lock ./
 
-# ==================
-# Timezone handling:
-# ==================
-# The container timezone is driven exclusively by the $TZ variable from .env,
-# not the host system’s localtime. This ensures consistent time across
-# environments and makes deployment fully self-contained
-#
-# If you need to change timezone behavior, update the .env file:
-#   TZ=Europe/London
-#
-# Python and system time will automatically reflect this setting
+# Optional: bring in source only for editable-like install or pyright/mypy usage during build
+# COPY src/ ./src/
 
-# Set timezone from build arg (default is UTC)
-ARG TZ=UTC
-ENV TZ=${TZ}
+# --- uv environment settings ---
+# UV_COMPILE_BYTECODE=1     → generate .pyc → faster startup, slightly bigger layers
+# UV_LINK_MODE=copy         → real files instead of symlinks (more portable / simpler COPY)
+# UV_NO_MANAGED_PYTHON=1    → don't let uv try to download its own Python
+# PYTHONDONTWRITEBYTECODE=1 → prevent .pyc generation during pip/uv install steps
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_NO_MANAGED_PYTHON=1 \
+    UV_NO_BUILD_ISOLATION=1 \
+    PYTHONDONTWRITEBYTECODE=1
 
-# Configure system clock and zoneinfo based on TZ
-RUN ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime \
-    && echo ${TZ} > /etc/timezone
+# ── Install locked dependencies only (no project code yet) ──
+# This layer usually has excellent cache reuse
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --no-install-project --no-editable
 
-# =========================================
-# 2. Install Poetry inside Docker container
-# =========================================
-ENV POETRY_VERSION=2.1.2 \
-    POETRY_HOME="/opt/poetry" \
-    POETRY_VIRTUALENVS_CREATE=false \
-    PATH="/opt/poetry/bin:$PATH"
+# Optional: verify the environment (good for CI/debug, can be removed in final prod version)
+# RUN uv python list && \
+#     uv pip list --system && \
+#     python -c "import fastapi, httpx, pydantic; print('core imports ok')"
 
-RUN curl -sSL https://install.python-poetry.org | python3 - && \
-    poetry --version && \
-    poetry config virtualenvs.create false && \
-    poetry config virtualenvs.in-project false
+# ============================================================
+# Stage 2: Runtime stage
+# ============================================================
+# - Minimal image: only Python runtime + our dependencies + application code
+# - Non-root user + correct ownership on writable directories
+# - Clean environment variables for production
+# ============================================================
+FROM python:3.13-alpine AS runtime
 
-# ======================================
-# 3. Install Dependencies (cached layer)
-# ======================================
-COPY pyproject.toml poetry.lock* ./
+WORKDIR /app
 
-# Default install (includes dev deps when POETRY_ENV=dev)
-ARG POETRY_ENV=prod
-RUN if [ "$POETRY_ENV" = "dev" ]; then \
-        poetry install --no-root --no-interaction --no-ansi; \
-    else \
-        poetry install --no-root --no-interaction --no-ansi --without dev; \
-    fi
+# --- Copy only the virtualenv (bare minimum runtime dependencies) ---
+COPY --from=build /app/.venv /app/.venv
 
-# ========================
-# 4. Copy Application Code
-# ========================
-COPY src ./src
+# --- Create minimal non-root user + prepare cache directories ---
+# Directories created here will be mounted later → must have correct ownership
+RUN addgroup -S app && \
+    adduser -S app -G app && \
+    mkdir -p /app/cache/cloudflare_verified_ddns && \
+    chown -R app:app /app
 
-# Make app code discoverable by Python
-ENV PYTHONPATH=/app/src
+# --- Copy application source code (with correct ownership) ---
+COPY --chown=app:app src/ /app/src/
 
-# ===============================
-# 5. Optimize runtime environment
-# ===============================
-# Disable .pyc files to reduce image size and keep mounts clean
-ENV PYTHONDONTWRITEBYTECODE=1
+# --- Switch to non-root user (security best practice) ---
+USER app
 
-# ==================
-# 6. Default Command 
-# ==================
-CMD ["python", "-m", "update_dns.__main__"]
+# --- Activate virtual environment + runtime settings ---
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH="/app/src${PYTHONPATH:+:${PYTHONPATH}}"
+
+# --- Default command ---
+# Uses the venv python automatically thanks to PATH
+CMD ["python", "-m", "cloudflare_verified_ddns.__main__"]
