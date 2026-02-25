@@ -24,7 +24,7 @@ This repository reflects how I approach engineering: building systems that are d
 
 ## 📈 Impact at a Glance (Real Metrics)
 
-* **99.85% uptime** over thousands of autonomous control cycles (cycle-based metrics persisted to disk - IP history + uptime counters survive restarts and power loss; no extrapolation)
+* **99.85% average uptime** over thousands of autonomous control cycles (cycle-based metrics persisted to disk - IP history + uptime counters survive restarts and power loss; no extrapolation)
 * **<3 minutes DNS convergence** after public IP change — **>50–90% faster** than typical third‑party Dynamic DNS (DDNS) providers, which commonly converge in 5–30 minutes under residential WAN conditions
 * **~83% reduction in external API calls** (120/hr → ~21/hr steady state)
 * **Zero false-positive DNS mutations** under real residential WAN churn
@@ -44,6 +44,19 @@ This repository reflects how I approach engineering: building systems that are d
 11:08:45 🟢 GSHEET      OK         ———————                    | rtt=182ms
 11:08:45 🟢 NET_HEALTH  UP         ALL SYSTEMS NOMINAL 🐾🌤️   | loop_ms=295 | uptime=99.85% (3403/3408) | sleep=129s
 ```
+
+```console
+12:51:04 🔁 LOOP        START      Sun Feb 08 2026                    | loop=1090
+12:51:04 🟢 ROUTER      UP         ip=192.168.0.1                     | rtt=1ms
+12:51:04 🟢 WAN_PATH    UP         dest=1.1.1.1:443                   | rtt=37ms | tls=ok
+12:51:04 🟢 PUBLIC_IP   OK         ip=###.##.##.###                   | rtt=53ms
+12:51:04 💚 VERDICT     READY      —————————                         
+12:51:04 🟢 CACHE       HIT        age=2618s                          | rtt=0.1ms
+12:51:04 🌐 DDNS        NO-OP      cache=hit                         
+12:51:04 🔁 LOOP        COMPLETE   —————————                          | loop=94ms | uptime=99.82% (1088/1090)
+12:51:04 🐾 SCHEDULER   CADENCE    SLOW_POLL                          | sleep=124s | jitter=4s
+```
+ > **Steady-state operation**: minimal external I/O, cache hits, long sleep intervals, sub-100ms control loop execution.
 
 ## 🧠 What I Built (Not Managed — Built)
 
@@ -67,7 +80,7 @@ This is hands-on IC work: architecture, control theory, fault tolerance, observa
 
   * 3600s cache freshness windows
   * 2× IP stability gating
-  * Adaptive polling (≈30s during recovery → ≈180s when healthy)
+  * Adaptive polling (≈30s during recovery → ≈120s when healthy)
 
 * Maintained **sub‑3‑minute IP convergence** despite aggressive call suppression — proving efficiency and responsiveness are not mutually exclusive.
 
@@ -163,3 +176,61 @@ It demonstrates:
 
 If you value engineers who **build, measure, and iterate relentlessly**, this repository is the proof.
 
+
+
+
+
+🗺 Roadmap
+
+We track planned improvements and feature ideas using a lightweight GitHub Project.
+
+The focus is on:
+
+ - Reliability and correctness first
+ - Clear, incremental improvements
+ - Avoiding over-complexity
+
+👉 [View the Project Board]
+
+
+➜  update_dns git:(main) ✗ ssh jdk@vpn.springmill.cadencecloud.io
+jdk@vpn.springmill.cadencecloud.io's password: 
+Welcome to Ubuntu 24.04.1 LTS (GNU/Linux 6.8.0-90-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Fri Feb  6 12:23:39 PM EST 2026
+
+  System load:  0.0                Temperature:           37.0 C
+  Usage of /:   29.1% of 97.87GB   Processes:             271
+  Memory usage: 3%                 Users logged in:       0
+  Swap usage:   0%                 IPv4 address for eno1: 192.168.0.123
+
+ * Strictly confined Kubernetes makes edge and IoT secure. Learn how MicroK8s
+   just raised the bar for easy, resilient and secure K8s cluster deployment.
+
+   https://ubuntu.com/engage/secure-kubernetes-at-the-edge
+
+Expanded Security Maintenance for Applications is not enabled.
+
+297 updates can be applied immediately.
+To see these additional updates run: apt list --upgradable
+
+2 additional security updates can be applied with ESM Apps.
+Learn more about enabling ESM Apps service at https://ubuntu.com/esm
+
+
+jdk@bucksserver:~/repo/cloudflare-verified-ddns$ docker ps
+CONTAINER ID   IMAGE                     COMMAND                  CREATED        STATUS                PORTS                                                                                          NAMES
+a6fb87b0b94c   update_dns-app            "python -m update_dn…"   19 hours ago   Up 19 hours                                                                                                          update_dns_app
+68d8b7240279   ghcr.io/wg-easy/wg-easy   "docker-entrypoint.s…"   5 months ago   Up 9 days (healthy)   0.0.0.0:51820->51820/udp, :::51820->51820/udp, 0.0.0.0:51821->51821/tcp, :::51821->51821/tcp   wg-easy
+jdk@bucksserver:~/repo/cloudflare-verified-ddns$ 
+jdk@bucksserver:~/repo/cloudflare-verified-ddns$ 
+jdk@bucksserver:~/repo/cloudflare-verified-ddns$ 
+jdk@bucksserver:~/repo/cloudflare-verified-ddns$ 
+jdk@bucksserver:~/repo/cloudflare-verified-ddns$ docker images
+REPOSITORY                TAG       IMAGE ID       CREATED        SIZE
+update_dns-app            latest    112cebb13be5   19 hours ago   569MB
+ghcr.io/wg-easy/wg-easy   latest    32ec7e2b1355   8 months ago   175MB
