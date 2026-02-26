@@ -3,9 +3,9 @@
 # ───────────────────────────────────────────────────────────
 # - Builder: uv installs deps/project → final drops uv toolchain
 # - Uses system Python only (no managed downloads)
-# - Excludes dev deps; separate caching for deps vs. code
-# - Security: non-root + owned writable dirs
-# - Fast startup via .pyc + copy mode
+# - Excludes dev deps and project install (runtime imports source directly)
+# - Security: non-root + only dedicated writable cache dir
+# - Optimized for minimal runtime size
 # ───────────────────────────────────────────────────────────
 
 # Builder stage
@@ -24,27 +24,21 @@ WORKDIR /app
 # Cache deps layer
 COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --no-editable
-
-# Install project after code copy
-COPY app/ /app/app/
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --no-editable
+    uv sync --frozen --no-dev --no-install-project --no-editable
 
 # Runtime stage
 FROM python:3.13-alpine AS prod
 
 WORKDIR /app
 
-# Copy venv (deps only)
-COPY --from=builder /app/.venv /app/.venv
-# Copy app code
-COPY --from=builder --chown=app:app /app/app /app/app
-
-# Non-root user + app-specific cache dir
 RUN addgroup -S app && adduser -S app -G app && \
     mkdir -p /app/cache/cloudflare_verified_ddns && \
-    chown -R app:app /app
+    chown app:app /app/cache/cloudflare_verified_ddns
+
+# Copy venv (deps only)
+COPY --from=builder --chown=app:app /app/.venv /app/.venv
+# Copy app code
+COPY --chown=app:app app/ /app/app/
 
 USER app
 
