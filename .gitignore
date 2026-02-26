@@ -1,19 +1,19 @@
-# Ignore environment files
-**/.env
+# Secrets
+.env
 
-# Ignore virtual environments 
-**/.venv/
+# Local virtualenv
+.venv/
 
-# Ignore python cache files
-**/__pycache__/
+# Python bytecode
+__pycache__/
+*.pyc
 
-# Ignore pytest cache files
-**/.pytest_cache/
+# Pytest artifacts (you have tests/)
+.pytest_cache/
+.coverage*
 
-# Ignore pytest coverage file
-**/.coverage*
+# Editor config
+.vscode/
 
-# Ignore MacOS junk
+# macOS junk
 .DS_Store
-
-
