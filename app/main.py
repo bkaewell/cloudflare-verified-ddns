@@ -5,16 +5,16 @@ import logging
 from enum import Enum, auto
 
 # ─── Project imports ───
-from .config import config
-from .telemetry import tlog
-from .cache import PersistentCache
-from .recovery_policy import RecoveryPolicy
-from .ddns_controller import DDNSController
-from .logger import get_logger, setup_logging
-from .cloudflare import CloudflareDNSProvider
-from .scheduling_policy import SchedulingPolicy
-from .recovery_controller import RecoveryController
-from .readiness import ReadinessState, ReadinessController
+from app.config import config
+from app.telemetry import tlog
+from app.cache import PersistentCache
+from app.recovery_policy import RecoveryPolicy
+from app.ddns_controller import DDNSController
+from app.logger import get_logger, setup_logging
+from app.cloudflare import CloudflareDNSProvider
+from app.scheduling_policy import SchedulingPolicy
+from app.recovery_controller import RecoveryController
+from app.readiness import ReadinessState, ReadinessController
 
 
 class SupervisorState(Enum):
