@@ -3,14 +3,11 @@ name = "cloudflare-verified-ddns"
 version = "0.1.0"
 description = "Lightweight, reliable Dynamic DNS updater for Cloudflare"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.13"
 dependencies = [
     "python-dotenv>=1.1.1",
     "requests>=2.32.5",
 ]
-
-[project.scripts]
-cloudflare-verified-ddns = "cloudflare_verified_ddns.__main__:main"
 
 [dependency-groups]
 dev = [
