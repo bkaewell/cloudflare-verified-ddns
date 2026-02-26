@@ -1,4 +1,4 @@
-# SYSTEM_DESIGN.md
+# SYSTEM_DESIGN
 
 **cloudflare-verified-ddns**  
 Lightweight, reliable Cloudflare DDNS updater with self-healing, persistent caching and uptime tracking
