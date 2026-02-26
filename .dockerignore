@@ -1,39 +1,17 @@
-# ================================
-# Python build and cache artifacts
-# ================================
-.pytest_cache/
-src/cloudflare_verified_ddns/__pycache__/
-__pycache__
+# Secrets
+.env
 
-# ====================
-# Virtual environments
-# ====================
+# Git metadata
+.git
+.gitignore
+
+# Local virtualenv
 .venv/
 
-# =====
-# Tests
-# =====
-tests/
+# Python bytecode
+__pycache__/
+*.pyc
 
-# =======================
-# Project config and docs
-# =======================
-README.md
-*.md
-Dockerfile
-docker-compose*
-.dockerignore
-pyproject.toml
-poetry.lock
-
-# ================================================
-# Editor/OS/junk files (common on MacBook/dev machines)
-# ================================================
-.git/
-.github/
-.gitignore
-.gitattributes
+# Editor config
 .vscode/
-.idea/
-.DS_Store
-Thumbs.db
+
