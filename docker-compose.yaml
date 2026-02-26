@@ -7,12 +7,21 @@ x-common-base: &common-base
   env_file: .env
   environment:
     - TZ=${TZ:-UTC}
+  read_only: true
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=16m
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  pids_limit: 128
 
 services:
   app:
     <<: *common-base
     container_name: cloudflare-verified-ddns
     restart: unless-stopped
+    init: true
     volumes:
       - cache:/app/cache
 
