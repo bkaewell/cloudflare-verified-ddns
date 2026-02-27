@@ -1,5 +1,7 @@
 # Resilient Home Network Control Plane 🚀
 
+[![Docker Image](https://img.shields.io/badge/dynamic/json?color=blue&label=ghcr.io%20image&query=%24.container.tags%5B0%5D&url=https%3A%2F%2Fghcr-badge.egpl.dev%2Fbkaewell%2Fcloudflare-verified-ddns%2Flatest_tag%3Ftrim%3Dmajor%26ignore%3Dsha)](https://ghcr.io/bkaewell/cloudflare-verified-ddns)
+
 ## Why I Built This
 
 I’ve tended to take smart risks, moving toward roles and locations that offered real technical challenge and operational responsibility. My career has taken me across the world, including living and working in Hawaii, Tokyo, and Munich, often far from home. One recurring problem followed me everywhere: how to maintain reliable, trustworthy access to my home network while thousands of miles away.
@@ -151,15 +153,57 @@ This demonstrates the ability to **internalize distributed-systems patterns** an
 
 ---
 
-##  ⚡ Quick Start
+##  ⚡ Quick Start (Container-First)
+
+Run as a public container image (no local Python, no virtualenv, no `.env` file required).
+
+### Required environment variables
+
+| Variable | Required | Default |
+|---|---|---|
+| `TZ` | No | `UTC` |
+| `CYCLE_INTERVAL_S` | No | `60` |
+| `LOG_LEVEL` | No | `INFO` |
+| `ALLOW_PHYSICAL_RECOVERY` | No | `false` |
+| `CLOUDFLARE_API_TOKEN` | Yes | — |
+| `CLOUDFLARE_ZONE_ID` | Yes | — |
+| `CLOUDFLARE_DNS_NAME` | Yes | — |
+| `CLOUDFLARE_DNS_RECORD_ID` | Yes | — |
+
+### docker run
 
 ```bash
-git clone https://github.com/bkaewell/micro-services.git
-cd update_dns
-
-cp .env.example .env          # configure domain, flags, keys, tokens
-docker compose up -d --build app
+docker run -d \
+  --name cloudflare-verified-ddns \
+  --restart unless-stopped \
+  --read-only \
+  --tmpfs /tmp:rw,noexec,nosuid,size=16m \
+  --cap-drop ALL \
+  --security-opt no-new-privileges:true \
+  --pids-limit 128 \
+  -v cloudflare-verified-ddns-cache:/app/cache \
+  -e TZ=UTC \
+  -e CYCLE_INTERVAL_S=60 \
+  -e LOG_LEVEL=INFO \
+  -e ALLOW_PHYSICAL_RECOVERY=false \
+  -e CLOUDFLARE_API_TOKEN=your_token \
+  -e CLOUDFLARE_ZONE_ID=your_zone_id \
+  -e CLOUDFLARE_DNS_NAME=vpn.example.com \
+  -e CLOUDFLARE_DNS_RECORD_ID=your_record_id \
+  ghcr.io/bkaewell/cloudflare-verified-ddns:latest
 ```
+
+### docker compose
+
+```bash
+CLOUDFLARE_API_TOKEN=your_token \
+CLOUDFLARE_ZONE_ID=your_zone_id \
+CLOUDFLARE_DNS_NAME=vpn.example.com \
+CLOUDFLARE_DNS_RECORD_ID=your_record_id \
+docker compose up -d
+```
+
+The provided `docker-compose.yaml` already includes hardened defaults (`read_only`, `tmpfs`, dropped capabilities, `no-new-privileges`, and PID limit) and does not depend on an `env_file`.
 
 ---
 
@@ -234,3 +278,13 @@ jdk@bucksserver:~/repo/cloudflare-verified-ddns$ docker images
 REPOSITORY                TAG       IMAGE ID       CREATED        SIZE
 update_dns-app            latest    112cebb13be5   19 hours ago   569MB
 ghcr.io/wg-easy/wg-easy   latest    32ec7e2b1355   8 months ago   175MB
+
+## 🐳 Image Publishing (GitHub Actions)
+
+This repo includes a workflow at `.github/workflows/docker-publish.yml` that:
+
+- Builds on every push to `main` and on version tags (`v*`).
+- Pushes images to `ghcr.io/<owner>/<repo>`.
+- Publishes branch/tag/version metadata and `latest` for the default branch.
+
+No secrets are baked into the image; runtime secrets must be injected as environment variables at deploy time.

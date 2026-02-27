@@ -2,11 +2,15 @@
 x-common-base: &common-base
   build:
     context: .
-    args:
-      TZ: ${TZ:-UTC}
-  env_file: .env
   environment:
-    - TZ=${TZ:-UTC}
+    TZ: ${TZ:-UTC}
+    CYCLE_INTERVAL_S: ${CYCLE_INTERVAL_S:-60}
+    LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ALLOW_PHYSICAL_RECOVERY: ${ALLOW_PHYSICAL_RECOVERY:-false}
+    CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN is required}
+    CLOUDFLARE_ZONE_ID: ${CLOUDFLARE_ZONE_ID:?CLOUDFLARE_ZONE_ID is required}
+    CLOUDFLARE_DNS_NAME: ${CLOUDFLARE_DNS_NAME:?CLOUDFLARE_DNS_NAME is required}
+    CLOUDFLARE_DNS_RECORD_ID: ${CLOUDFLARE_DNS_RECORD_ID:?CLOUDFLARE_DNS_RECORD_ID is required}
   read_only: true
   tmpfs:
     - /tmp:rw,noexec,nosuid,size=16m
