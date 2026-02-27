@@ -7,7 +7,6 @@ import requests
 
 # ─── Third-party imports ───
 from typing import Optional
-from dotenv import load_dotenv
 from google.auth.exceptions import TransportError
 from google.auth import exceptions as auth_exceptions
 
@@ -30,8 +29,6 @@ class GSheetsService:
 
         self.logger = get_logger("gsheets")
 
-        # Load .env
-        load_dotenv()
 
         # Configuration
         self.gsheet_name = os.getenv("GOOGLE_SHEET_NAME")
@@ -48,7 +45,7 @@ class GSheetsService:
 
         if not all(required_vars):
             raise EnvironmentError(
-                "Missing required Google environment variables in .env file "
+                "Missing required Google environment variables "
                 "(GOOGLE_SHEET_NAME, GOOGLE_WORKSHEET, " \
                 "GOOGLE_SHEETS_CREDENTIALS)"
             )
