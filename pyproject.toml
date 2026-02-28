@@ -5,7 +5,6 @@ description = "Lightweight, reliable Dynamic DNS updater for Cloudflare"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "python-dotenv>=1.1.1",
     "requests>=2.32.5",
 ]
 
