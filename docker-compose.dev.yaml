@@ -1,23 +1,20 @@
-# YAML anchor for common DEV settings that extend the base Docker config
-x-common-dev: &common-dev
-  build:
-    args:
-      POETRY_ENV: dev
-  environment:
-    - PYTHONUNBUFFERED=1
-  # Bind-mounts entire local repo into /app inside the container
-  # Volumes here apply to run-time environment, bypassing .dockerignore for live code editting in dev mode
-  volumes:
-    - .:/app # in dev mode, bypasses .dockerignore
+# Dev overrides: 
+# - Build locally from Dockerfile instead of pulling GHCR image
+# - Bind-mount local ./app/ code to /app/app/ for live/hot-reload style edits
+# 
+# Usage:
+#   docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d --build
+# 
+# After edits to ./app/*.py → just restart the container:
+#   docker compose -f docker-compose.yaml -f docker-compose.dev.yaml restart app
 
 services:
-  # ================================
-  # Continuous Operation (Main Loop)
-  # ================================
   app:
-    <<: *common-dev
-  # ================================
-  # On-Demand Execution (Manual Run)
-  # ================================
-  test:
-    <<: *common-dev
+    build:
+      context: .     # Builds from your local Dockerfile
+      target: prod   # Explicitly build the lean runtime stage
+
+    volumes:
+      - ./app:/app/app:ro   # Mount host code for instant code changes
+      - cache:/app/cache    # Persistent cache volume (inherited from base compose file)
+

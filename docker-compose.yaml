@@ -1,31 +1,34 @@
-# YAML anchor for common BASE settings across all Docker services
-x-common-base: &common-base
-  build:
-    context: .
-  environment:
-    TZ: ${TZ:-UTC}
-    CYCLE_INTERVAL_S: ${CYCLE_INTERVAL_S:-60}
-    LOG_LEVEL: ${LOG_LEVEL:-INFO}
-    ALLOW_PHYSICAL_RECOVERY: ${ALLOW_PHYSICAL_RECOVERY:-false}
-    CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN is required}
-    CLOUDFLARE_ZONE_ID: ${CLOUDFLARE_ZONE_ID:?CLOUDFLARE_ZONE_ID is required}
-    CLOUDFLARE_DNS_NAME: ${CLOUDFLARE_DNS_NAME:?CLOUDFLARE_DNS_NAME is required}
-    CLOUDFLARE_DNS_RECORD_ID: ${CLOUDFLARE_DNS_RECORD_ID:?CLOUDFLARE_DNS_RECORD_ID is required}
-  read_only: true
-  tmpfs:
-    - /tmp:rw,noexec,nosuid,size=16m
-  security_opt:
-    - no-new-privileges:true
-  cap_drop:
-    - ALL
-  pids_limit: 128
+# Base config: Production-ready with GHCR image
+# Run with: docker compose up -d
 
 services:
   app:
-    <<: *common-base
+    image: ghcr.io/bkaewell/cloudflare-verified-ddns:latest
     container_name: cloudflare-verified-ddns
     restart: unless-stopped
     init: true
+
+    environment:
+      TZ: America/New_York
+      CYCLE_INTERVAL_S: 60
+      LOG_LEVEL: INFO
+      ALLOW_PHYSICAL_RECOVERY: "false"
+      ROUTER_IP: "192.168.0.1"
+      PLUG_IP: "192.168.0.150"    
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:?required}
+      CLOUDFLARE_ZONE_ID: ${CLOUDFLARE_ZONE_ID:?required}
+      CLOUDFLARE_DNS_NAME: ${CLOUDFLARE_DNS_NAME:?required}
+      CLOUDFLARE_DNS_RECORD_ID: ${CLOUDFLARE_DNS_RECORD_ID:?required}
+
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 128
+
     volumes:
       - cache:/app/cache
 
@@ -35,11 +38,6 @@ services:
         max-size: "20m"
         max-file: "15"
 
-  # ─── On-Demand Execution (Manual Run) ───
-  test:
-    <<: *common-base
-    container_name: update_dns_test
-    restart: "no"
-
 volumes:
   cache:
+
