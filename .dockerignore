@@ -5,6 +5,9 @@
 .git
 .gitignore
 
+# GitHub Actions workflows
+.github
+
 # Local virtualenv
 .venv/
 
