@@ -1,13 +1,11 @@
 # ─── Standard library imports ───
 import time
-from enum import Enum, auto
 from typing import Optional
 
 # ─── Project imports ───
 from .telemetry import tlog
 from .cache import PersistentCache
 from .cloudflare import CloudflareDNSProvider
-from .recovery_controller import RecoveryController
 from .readiness import ReadinessState, READINESS_EMOJI
 from .utils import (
     ping_host, 
@@ -25,12 +23,11 @@ class DDNSController:
     • Observe LAN, WAN path, and public IP signals
     • Derive a single authoritative readiness verdict per cycle
     • Reconcile DNS only after stability is proven
-    • Escalate recovery after sustained failure
 
     Design bias:
     • Conservative by default
     • Low-noise when healthy
-    • Fail-fast, recover deliberately
+    • Fail-fast and conservative
     """
     # ─── Class Constants ───
     # consecutive stable IPs required for READY
@@ -43,15 +40,13 @@ class DDNSController:
             max_cache_age_s: str,
             readiness: ReadinessState,
             dns_provider: CloudflareDNSProvider, 
-            recovery: RecoveryController,
             cache: PersistentCache,
         ):
         """
         Initialize the DDNS control loop.
 
         • Readiness FSM is the single source of truth
-        • Recovery is policy-driven and externally gated
-        • Startup assumes nothing about network health
+            • Startup assumes nothing about network health
         """
 
         # ─── Core Controle Plane (Single Source of Truth) ───
@@ -59,7 +54,6 @@ class DDNSController:
 
         # ─── External Actuators ───
         self.dns_provider = dns_provider
-        self.recovery = recovery
 
         # ─── Environment & Topology ─── 
         self.router_ip = router_ip
@@ -231,8 +225,6 @@ class DDNSController:
         if readiness == ReadinessState.READY:
             self.uptime.up += 1
 
-        # Align with CACHE_MAX_AGE_S ~3600 seconds?
-
         # Persist periodically (best-effort)
         # if self.uptime.total % 50 == 0:
         #     self.cache.store_uptime(self.uptime)
@@ -280,8 +272,7 @@ class DDNSController:
         2. Assess readiness (FSM)
         3. Emit an authoritative verdict
         4. Perform READY-only side effects (DDNS)
-        5. Track failures + attempt recovery
-        6. Loop telemetry
+        5. Loop telemetry
         """
         start = time.monotonic()
         heartbeat = heartbeat = time.strftime("%a %b %d %Y")
@@ -322,8 +313,8 @@ class DDNSController:
 
         if can_observe_public_ip:
             public = get_ip()
-            #public = self._override_public_ip_for_test(public)  # DEBUG hook
-            #self.count += 1
+            public = self._override_public_ip_for_test(public)  # DEBUG hook
+            self.count += 1
 
             tlog(
                 "🟢" if public.success else "🔴",
@@ -356,7 +347,6 @@ class DDNSController:
             ) 
 
         # ─── Verdict: authoritative ───
-        self.recovery.observe(current)
         verdict_primary = None
         verdict_meta = None
 
@@ -369,13 +359,6 @@ class DDNSController:
                     f"confirmations={self.promotion_votes}/"
                     f"{DDNSController.PROMOTION_CONFIRMATIONS_REQUIRED}"
                 )
-            )
-
-        elif current == ReadinessState.NOT_READY:
-            verdict_primary = "observe-only"
-            verdict_meta = (
-                f"down_count={self.recovery.not_ready_streak}/"
-                f"{self.recovery.policy.max_consecutive_not_ready_cycles}"
             )
 
         tlog(
@@ -392,7 +375,7 @@ class DDNSController:
         )
 
         if entering_not_ready:
-            # This guarantees that recovery always requires fresh evidence
+            # Guarantees fresh evidence after NOT_READY transitions
             # (no promotion carryover, no stale IP stability).
             self.promotion_votes = 0
             self.last_public_ip = None
@@ -413,9 +396,6 @@ class DDNSController:
             #if public and public.success:
             self._reconcile_dns_if_needed(public.ip)
         
-        elif current == ReadinessState.NOT_READY:
-            self.recovery.maybe_recover()
-
         self._tick_uptime(current)
 
         elapsed_ms = (time.monotonic() - start) * 1000

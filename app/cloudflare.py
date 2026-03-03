@@ -1,5 +1,4 @@
 # ─── Standard library imports ───
-import os
 import json
 import time
 import requests
