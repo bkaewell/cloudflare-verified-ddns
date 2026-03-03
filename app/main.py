@@ -8,13 +8,11 @@ from enum import Enum, auto
 from app.config import config
 from app.telemetry import tlog
 from app.cache import PersistentCache
-from app.recovery_policy import RecoveryPolicy
 from app.ddns_controller import DDNSController
 from app.logger import get_logger, setup_logging
 from app.cloudflare import CloudflareDNSProvider
 from app.scheduling_policy import SchedulingPolicy
-from app.recovery_controller import RecoveryController
-from app.readiness import ReadinessState, ReadinessController
+from app.readiness import ReadinessController
 
 
 class SupervisorState(Enum):
@@ -139,18 +137,9 @@ def main() -> None:
         fast_poll_scalar=config.FAST_POLL_SCALAR,
         slow_poll_scalar=config.SLOW_POLL_SCALAR,
     )
-    recovery_policy = RecoveryPolicy(
-        cycle_interval_s=config.CYCLE_INTERVAL_S,
-        fast_poll_scalar=config.FAST_POLL_SCALAR,
-    )
 
     # ─── Controllers (stateful) ───
     readiness = ReadinessController()
-    recovery = RecoveryController(
-        policy=recovery_policy,
-        allow_physical_recovery=config.ALLOW_PHYSICAL_RECOVERY,
-        plug_ip=config.Hardware.PLUG_IP
-    )
 
     cache = PersistentCache()
 
@@ -159,7 +148,6 @@ def main() -> None:
         max_cache_age_s=config.MAX_CACHE_AGE_S,
         readiness=readiness,
         dns_provider=dns_provider,
-        recovery=recovery,
         cache=cache,
     )
 

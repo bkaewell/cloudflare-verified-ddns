@@ -164,7 +164,6 @@ Run as a public container image (no local Python, no virtualenv, no `.env` file 
 | `TZ` | No | `UTC` |
 | `CYCLE_INTERVAL_S` | No | `60` |
 | `LOG_LEVEL` | No | `INFO` |
-| `ALLOW_PHYSICAL_RECOVERY` | No | `false` |
 | `CLOUDFLARE_API_TOKEN` | Yes | — |
 | `CLOUDFLARE_ZONE_ID` | Yes | — |
 | `CLOUDFLARE_DNS_NAME` | Yes | — |
@@ -185,7 +184,6 @@ docker run -d \
   -e TZ=UTC \
   -e CYCLE_INTERVAL_S=60 \
   -e LOG_LEVEL=INFO \
-  -e ALLOW_PHYSICAL_RECOVERY=false \
   -e CLOUDFLARE_API_TOKEN=your_token \
   -e CLOUDFLARE_ZONE_ID=your_zone_id \
   -e CLOUDFLARE_DNS_NAME=vpn.example.com \

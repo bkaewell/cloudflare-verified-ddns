@@ -20,14 +20,11 @@ class CloudflareConfig:
 @dataclass(frozen=True)
 class HardwareConfig:
     """
-    Hardware-specific network endpoints.
+    Hardware-specific network endpoint.
     """
 
     ROUTER_IP: str = field(
         default_factory=lambda: os.getenv("ROUTER_IP", "192.168.0.1").strip()
-    )
-    PLUG_IP: str = field(
-        default_factory=lambda: os.getenv("PLUG_IP", "").strip()
     )
 
 
@@ -65,11 +62,6 @@ class Config:
 
     # Global log level for agent runtime
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO").upper()
-
-    # Gate for performing physical recovery actions (e.g., smart plug reboot)
-    ALLOW_PHYSICAL_RECOVERY: bool = (
-        os.getenv("ALLOW_PHYSICAL_RECOVERY", "false").lower() in ("true", "1", "yes")
-    )
 
     # Cloudflare endpoints
     Cloudflare: CloudflareConfig = field(default_factory=CloudflareConfig)

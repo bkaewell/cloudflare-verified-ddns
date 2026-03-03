@@ -12,11 +12,7 @@ services:
       TZ: America/New_York
       CYCLE_INTERVAL_S: 60
       LOG_LEVEL: INFO
-      ALLOW_PHYSICAL_RECOVERY: "false"
       ROUTER_IP: "192.168.0.1"
-      # Optional internal-use recovery target. Leave empty unless
-      # ALLOW_PHYSICAL_RECOVERY=true and a reserved DHCP IP exists.
-      PLUG_IP: ""   
       CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:?required}
       CLOUDFLARE_ZONE_ID: ${CLOUDFLARE_ZONE_ID:?required}
       CLOUDFLARE_DNS_NAME: ${CLOUDFLARE_DNS_NAME:?required}
