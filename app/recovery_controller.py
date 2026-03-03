@@ -45,9 +45,12 @@ class RecoveryController:
         self.not_ready_streak: int = 0
 
         # ─── Recovery Guardrails ───
-        self.last_recovery_time: float = 0.0  # epoch → first recovery allowed immediately
+        self.last_recovery_time: float | None = None
 
     def _plug_available(self) -> bool:
+        if not self.plug_ip:
+            return False
+
         return ping_host(self.plug_ip).success
 
     def observe(self, readiness: ReadinessState) -> None:
@@ -79,10 +82,10 @@ class RecoveryController:
             return False
 
         now = time.monotonic()
-        since_last = now - self.last_recovery_time
+        since_last = None if self.last_recovery_time is None else (now - self.last_recovery_time)
 
         # Prevent recovery storms
-        if since_last < self.policy.recovery_cooldown_s:
+        if since_last is not None and since_last < self.policy.recovery_cooldown_s:
             self._emit_suppressed(
                 "cooldown active",
                 meta=f"last_attempt={int(since_last)}s | window={self.policy.recovery_cooldown_s}s",
