@@ -21,12 +21,14 @@ class CloudflareConfig:
 class HardwareConfig:
     """
     Hardware-specific network endpoints.
-
-    These values identify locally managed devices.
     """
 
-    ROUTER_IP: str = field(default_factory=lambda: os.getenv("ROUTER_IP", "192.168.0.1"))
-    PLUG_IP: str = field(default_factory=lambda: os.getenv("PLUG_IP", "192.168.0.150"))
+    ROUTER_IP: str = field(
+        default_factory=lambda: os.getenv("ROUTER_IP", "192.168.0.1").strip()
+    )
+    PLUG_IP: str = field(
+        default_factory=lambda: os.getenv("PLUG_IP", "").strip()
+    )
 
 
 @dataclass(frozen=True)
