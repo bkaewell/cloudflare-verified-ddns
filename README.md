@@ -286,3 +286,15 @@ This repo includes a workflow at `.github/workflows/docker-publish.yml` that:
 - Publishes branch/tag/version metadata and `latest` for the default branch.
 
 No secrets are baked into the image; runtime secrets must be injected as environment variables at deploy time.
+
+## 🧪 Running Tests
+
+Install dependencies and run the full unit test suite with `pytest`:
+
+```bash
+python -m pip install -e .
+python -m pip install pytest
+pytest
+```
+
+The test suite uses mock objects for external HTTP/API behavior so tests run offline and do not make live Cloudflare or IP-discovery calls.
