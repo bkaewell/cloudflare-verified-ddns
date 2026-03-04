@@ -8,9 +8,10 @@
 __pycache__/
 *.pyc
 
-# Pytest artifacts (you have tests/)
+# Pytest artifacts
 .pytest_cache/
 .coverage*
+htmlcov/
 
 # Editor config
 .vscode/
