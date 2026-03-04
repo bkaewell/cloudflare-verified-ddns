@@ -63,17 +63,39 @@ Before starting, please read our [Code of Conduct](CODE_OF_CONDUCT.md) (Contribu
     - Keep subject <72 chars, body explains why + how if non-obvious.
   - Sign commits if possible (`-S` flag) for verification.
 
-## Pull Request Guidelines
+## Pull Requests
 
-  - **One change per PR** - small, focused, easy to review.
-  - **Include:**
-    -  Tests for new/changed behavior.
-    -  Doc updates (README, inline, or usage examples).
-    -  `BREAKING CHANGE` footer if needed.
-  - Run all tests + linters locally before pushing.
-  - Use the PR template and check all boxes.
-  - Link related issues (`Fixes #123` / `Closes #456`).
-  - Be ready for feedback, iterations are normal and appreciated.
+Thanks for wanting to contribute!
+
+To make reviews fast and high-quality, we use a structured pull request template. Please fill out **all required sections** when opening a PR.
+
+### How to open a good PR
+
+1. Make sure you've read and followed the steps in the pull request template
+2. Run tests locally: `uv run pytest`
+3. Update documentation if the public interface / config / behavior changed
+4. Link related issues with `Closes #123` or `Related to #456`
+5. Rebase on latest `main` and squash fixup commits before opening
+
+When you open a PR against this repository, GitHub will automatically pre-fill the description with our [pull request template](PULL_REQUEST_TEMPLATE/pull_request_template.md).
+
+A GitHub Actions workflow called **PR Lint** will automatically check that:
+- The PR has a clear one-sentence **Summary**
+- A **Type of change** is selected
+- **Motivation / Related issue** explains the why (not just "see summary")
+- The **Checklist** at the bottom has most/all relevant boxes checked
+
+If something is missing, the check will fail (red X) and a comment may appear asking for fixes.
+
+### We highly recommend
+
+- Use Conventional Commits style for the PR title (optional but appreciated):  
+  `feat: add multiple zone support`  
+  `fix: handle token expiry during refresh`  
+  `docs: improve configuration examples`  
+  `chore(deps): bump cloudflare python sdk`
+
+Thank you — high-quality PRs get merged much faster! 🚀
 
 ## Recommended Labels
 
