@@ -1,0 +1,98 @@
+name: PR Lint
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write   # needed to post comments
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check PR title and body
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const payload = context.payload;
+            const title = payload.pull_request.title.trim();
+            const body = payload.pull_request.body || "";
+
+            let errors = [];
+
+            // Basic title checks
+            if (title.length < 10) {
+              errors.push("PR title is too short. Please use a clear, descriptive title.");
+            }
+            if (title.toLowerCase().includes("update") || title.toLowerCase().includes("fix") || title.toLowerCase() === "wip") {
+              errors.push("PR title is too generic ('update', 'fix', 'WIP'…). Please be more specific.");
+            }
+
+            // Check for key sections from your template
+            const requiredSections = [
+              { name: "Summary", keyword: "## Summary", minLength: 20 },
+              { name: "Type of change", keyword: "## Type of change", minLength: 10 },
+              { name: "Motivation / Related issue", keyword: "## Motivation / Related issue", minLength: 20 },
+              { name: "Checklist", keyword: "## Checklist", minLength: 50 }
+            ];
+
+            for (const section of requiredSections) {
+              const index = body.indexOf(section.keyword);
+              if (index === -1) {
+                errors.push(`Missing required section: **${section.name}**`);
+                continue;
+              }
+              // Rough length check after the heading
+              const nextSection = body.indexOf("##", index + 10);
+              const content = (nextSection === -1 ? body.slice(index) : body.slice(index, nextSection)).trim();
+              if (content.length < section.minLength + section.keyword.length) {
+                errors.push(`Section **${section.name}** looks empty or too short. Please provide more detail.`);
+              }
+            }
+
+            // Optional: warn if no linked issue
+            if (!body.match(/Closes #\d+|Related to #\d+|Fixes #\d+/i)) {
+              errors.push("No linked issue found (e.g. `Closes #42`). Please link related issues if applicable.");
+            }
+
+            if (errors.length > 0) {
+              const message = `### PR Lint issues detected:\n\n${errors.map(e => `- ${e}`).join("\n")}\n\nPlease update the PR description accordingly. Thank you!`;
+              
+              // Post or update comment
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number
+              });
+              
+              const botComment = comments.find(c => 
+                c.user.type === 'Bot' && c.body.includes("PR Lint issues detected")
+              );
+              
+              if (botComment) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: message
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: message
+                });
+              }
+
+              // Fail the check (remove if you want soft enforcement)
+              core.setFailed("PR does not meet quality guidelines");
+            } else {
+              console.log("PR looks good! ✓");
+            }
