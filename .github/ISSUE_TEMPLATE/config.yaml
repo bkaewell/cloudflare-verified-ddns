@@ -1,4 +1,4 @@
-blank_issues_enabled: true       # ← hides the "Open blank issue" option
+blank_issues_enabled: false       # ← hides the "Open blank issue" option
 contact_links:
   - name: Question / Help / Discussion
     url: https://github.com/bkaewell/cloudflare-verified-ddns/discussions

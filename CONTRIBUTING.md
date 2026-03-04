@@ -45,7 +45,7 @@ Before starting, please read our [Code of Conduct](CODE_OF_CONDUCT.md) (Contribu
    uv run pytest --cov=app --cov-report=term-missing --cov-report=html
    ```
 
-   Open `cloudflare-verified-ddns/htmlcov/index.html` to view
+   Open `htmlcov/index.html` to view
 
 5. **Linting & Formatting** (enforced via pre-commit)
 
