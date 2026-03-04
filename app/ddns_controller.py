@@ -10,8 +10,7 @@ from .readiness import ReadinessState, READINESS_EMOJI
 from .utils import (
     ping_host, 
     verify_wan_reachability, 
-    get_ip, doh_lookup, 
-    IPResolutionResult  # test hook
+    get_ip, doh_lookup
 )
 
 
@@ -69,13 +68,6 @@ class DDNSController:
         self.cache = cache
         self.uptime = cache.load_uptime()
         self.loop = 1
-
-
-        ##################
-        # For testing only
-        ##################
-        self.count = 0
-        self.flag = True
 
     def _record_ip_observation(self, public_ip: Optional[str]) -> bool:
         """
@@ -231,38 +223,6 @@ class DDNSController:
 
         self.cache.store_uptime(self.uptime)
 
-    #********************************
-    #********************************
-    #********************************
-    #********************************
-    #********************************
-    def _override_public_ip_for_test(
-        self,
-        public: IPResolutionResult,
-    ) -> IPResolutionResult:
-        
-        if self.count % 3 == 0:
-            self.flag = not self.flag
-        
-        if self.flag:
-            return IPResolutionResult(
-                ip="192.168.0.77",
-                elapsed_ms=public.elapsed_ms,
-                attempts=public.attempts,
-                max_attempts=4,
-                success=True,
-            )
-            ip: str | None
-
-        return public
-
-    #********************************
-    #********************************
-    #********************************
-    #********************************
-    #********************************
-
-
     def run_cycle(self) -> None:
         """
         Execute one autonomous control-loop cycle.
@@ -313,8 +273,6 @@ class DDNSController:
 
         if can_observe_public_ip:
             public = get_ip()
-            public = self._override_public_ip_for_test(public)  # DEBUG hook
-            self.count += 1
 
             tlog(
                 "🟢" if public.success else "🔴",
