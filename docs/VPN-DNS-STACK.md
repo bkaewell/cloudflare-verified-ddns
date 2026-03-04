@@ -1,5 +1,63 @@
 # Resilient Home Network Stack 🏠🔒🚀
 
+
+
+## Architecture overview
+
+```mermaid
+flowchart TD
+    A[Supervisor Loop] --> B[DDNSController.run_cycle]
+    B --> C[Observe: LAN + WAN + Public IP]
+    C --> D[Readiness FSM]
+    D -->|READY only| E[Reconcile DNS]
+    E --> F[Cache check]
+    F --> G[DoH verify]
+    G --> H[Cloudflare update if drift]
+    B --> I[Telemetry + uptime persist]
+    A --> J[SchedulingPolicy.next_schedule]
+```
+
+## Runtime flow
+`cloudflare-verified-ddns` runs as a single long-lived process with a supervisor loop.
+1. `app/main.py` composes dependencies.
+2. `run_supervisor_loop()` executes one `DDNSController` cycle.
+3. `DDNSController.run_cycle()` observes network signals, advances readiness, and conditionally reconciles DNS.
+4. `SchedulingPolicy.next_schedule()` computes the next sleep interval with jitter.
+
+```mermaid
+flowchart TD
+    A[main] --> B[run_supervisor_loop]
+    B --> C[DDNSController.run_cycle]
+    C --> D[ReadinessController.advance]
+    D -->|READY| E[DNS reconcile]
+    E --> F[PersistentCache + DoH verification]
+    F --> G[CloudflareDNSProvider.update_dns]
+    C --> H[Telemetry + uptime persistence]
+    B --> I[SchedulingPolicy.next_schedule]
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 **Always-on Mini-PC VPN + Auto DNS Reconciliation**
 
 Minimal, self-healing remote access infrastructure.  
