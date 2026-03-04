@@ -1,0 +1,100 @@
+name: ✨ Feature Request
+description: Propose a new capability or improvement for cloudflare-verified-ddns
+title: "[FEATURE] "
+labels: ["enhancement", "triage-needed"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to improve cloudflare-verified-ddns! 🚀  
+        High-quality feature requests like this one get prioritized fastest.  
+        Please fill every required section — incomplete requests may be closed or labeled "needs-info".
+
+  - type: input
+    id: summary
+    attributes:
+      label: One-line summary
+      description: A clear, concise title for the feature
+      placeholder: "Support multiple Cloudflare zones in a single container instance"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / Use case
+      description: What problem are you actually trying to solve? Who is affected (e.g. enterprise users, homelab, Kubernetes operators)? Include real-world impact if possible.
+      placeholder: |
+        Currently only one zone per container is supported.
+        We run 12+ domains across two teams and need separate update logic + alerting.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Your preferred implementation approach. Be as technical as you like — senior engineers read this.
+      placeholder: |
+        Add a `zones:` array in config.yaml + support for per-zone API tokens.
+        CLI flag: --zone-id=... (multiple allowed).
+        Docker Compose example: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What other approaches did you evaluate? Why were they rejected?
+      placeholder: |
+        - Separate container per zone → too much overhead and duplicated config
+        - External orchestration script → fragile and not self-contained
+
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact / Priority
+      description: How important is this to you and the broader community?
+      options:
+        - 🚨 High – blocks production / enterprise adoption
+        - 🔄 Medium – significant improvement for many users
+        - 🌟 Nice-to-have – would be cool
+      default: 1
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component(s)
+      multiple: true
+      options:
+        - Docker / Docker Compose
+        - Single-container mode
+        - Python CLI / local mode
+        - Cloudflare API integration
+        - Configuration / YAML parsing
+        - Logging / observability
+        - Other (specify in Additional context)
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Screenshots, mockups, config snippets, related issues/PRs, or anything else that helps. Drag & drop images directly here.
+      render: markdown
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist (required)
+      options:
+        - label: I searched existing issues and this is not a duplicate
+          required: true
+        - label: I am running the latest release / git main
+          required: true
+        - label: This feature aligns with the project's scope (Cloudflare DDNS client)
+          required: true
