@@ -84,7 +84,8 @@ Typical output when healthy:
 
 **Architecture overview**
 
-```flowchart TD
+```mermaid
+flowchart TD
     A[Supervisor Loop] --> B[DDNSController.run_cycle]
     B --> C[Observe: LAN + WAN + Public IP]
     C --> D[Readiness FSM]
@@ -116,7 +117,7 @@ Video walkthroughs coming soon — real demos, not slides.
 I welcome thoughtful contributions. Read `CONTRIBUTING.md` (./CONTRIBUTING.md), open an issue or pull request. High-quality PRs get merged quickly.
 
 **Topics for discoverability**
-`cloudflare`, `ddns`, `dynamic-dns`, `homelab`, `self-hosted`, `network-reliability`, `wireguard`, `cgnat`, `dns-automation`, `vpn`, `cloudflare-api`, `dns-over-https`, `api-rate-limiting`, `caching`
+`cloudflare`, `ddns`, `dynamic-dns`, `homelab`, `self-hosted`, `network-reliability`, `wireguard`, `cgnat`, `dns-automation`, `vpn`, `cloudflare-api`, `dns-over-https`, `api-rate-limiting`, `caching`, `docker`, `docker-image`, `lightweight`, `container-optimization`
 
 **One-liner repo description**
 Reliable Cloudflare DDNS: readiness-gated updates, DoH verification, adaptive polling, and clear telemetry for dynamic residential IPs.
