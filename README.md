@@ -6,7 +6,7 @@
 [![GHCR](https://img.shields.io/badge/ghcr-image-blue)](https://ghcr.io/bkaewell/cloudflare-verified-ddns)
 
 **Why this exists - and why better matters**  
-Residential ISPs change your IP frequently. CGNAT blocks inbound connections. Paths drop for seconds or minutes. Cloudflare rate-limits reckless API callers.
+Residential ISPs change your IP frequently. CGNAT blocks inbound connections. Paths drop for seconds or minutes. Cloudflare [rate-limits](https://developers.cloudflare.com/fundamentals/api/reference/limits/) reckless API callers.
 
 Most DDNS tools ignore all of that. They poll too often, update without checking if the change actually landed, flap records during brief outages, and leave you guessing when something goes wrong.
 
@@ -28,7 +28,7 @@ Key behaviors:
 - **Cache-first + monotonic loop** — skips unnecessary API calls when local state is fresh and trusted  
 - **Adaptive polling** — fast recovery during problems, long intervals (minutes+) when stable → saves API quota and CPU resources 
 - **Operator-grade telemetry** — detailed, timestamped logs + persistent uptime stats that survive restarts  
-- **Hardened & container-native** — minimal footprint, secure defaults, easy to run anywhere
+- **Hardened & container-native** — minimal docker image footprint, secure defaults, easy to run anywhere
 
 This is not another quick script.  
 It is production-grade control logic moved to the home edge — and it is open source so no one has to keep settling for fragile workarounds.
@@ -66,15 +66,15 @@ docker logs -f cloudflare-verified-ddns
 Typical output when healthy:
 
 ```console
-23:02:39 🔁 LOOP        START      Tue Mar 03 2026                    | loop=1
-23:02:39 🟢 ROUTER      UP         ip=192.168.0.1                     | rtt=11ms
-23:02:39 🟢 WAN_PATH    UP         dest=1.1.1.1:443                   | rtt=69ms | tls=ok
-23:02:39 🟢 PUBLIC_IP   OK         ip=--.---.---.--                   | rtt=92ms
-23:02:39 💚 VERDICT     READY      —————————                         
-23:02:39 🟢 CACHE       HIT        age=743s                           | rtt=2.1ms
-23:02:39 🌐 DDNS        NO-OP      cache=hit                         
-23:02:39 🔁 LOOP        COMPLETE   —————————                          | loop=181ms | uptime=99.15% (8597/8671)
-23:02:39 🐾 SCHEDULER   CADENCE    SLOW_POLL                          | sleep=123s | jitter=3s
+23:02:39 🔁 LOOP        START      Tue Mar 03 2026    | loop=1
+23:02:39 🟢 ROUTER      UP         ip=192.168.0.1     | rtt=11ms
+23:02:39 🟢 WAN_PATH    UP         dest=1.1.1.1:443   | rtt=69ms | tls=ok
+23:02:39 🟢 PUBLIC_IP   OK         ip=x.x.x.x         | rtt=92ms
+23:02:39 💚 VERDICT     READY      —————————                  
+23:02:39 🟢 CACHE       HIT        age=743s           | rtt=2.1ms
+23:02:39 🌐 DDNS        NO-OP      cache=hit                     
+23:02:39 🔁 LOOP        COMPLETE   —————————          | loop=181ms | uptime=99.15% (8597/8671)
+23:02:39 🐾 SCHEDULER   CADENCE    SLOW_POLL          | sleep=123s | jitter=3s
 ```
 
 **Other ways to run it**
@@ -116,15 +116,15 @@ Video walkthroughs coming soon — real demos, not slides.
 **Contributing**
 I welcome thoughtful contributions. Read `CONTRIBUTING.md` (./CONTRIBUTING.md), open an issue or pull request. High-quality PRs get merged quickly.
 
-**Topics for discoverability**
+**Topics for discoverability**  
 `cloudflare`, `ddns`, `dynamic-dns`, `homelab`, `self-hosted`, `network-reliability`, `wireguard`, `cgnat`, `dns-automation`, `vpn`, `cloudflare-api`, `dns-over-https`, `api-rate-limiting`, `caching`, `docker`, `docker-image`, `lightweight`, `container-optimization`
 
-**One-liner repo description**
+**One-liner repo description**  
 Reliable Cloudflare DDNS: readiness-gated updates, DoH verification, adaptive polling, and clear telemetry for dynamic residential IPs.
 
 **Social preview suggestion**  
-  -**Bold title**: cloudflare-verified-ddns
-  -**Tagline**: "It only updates when it's ready. It stays silent when it's healthy."
+  -**Bold title**: cloudflare-verified-ddns  
+  -**Tagline**: "It only updates when it's ready. It stays silent when it's healthy."  
   -**Visual**: Cloudflare logo + clean status line (🟢 READY / 🐾 SLOW_POLL) + subtle DNS record icon
 
 **The bigger picture**  
