@@ -4,6 +4,8 @@
 [![Python](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![Docker Publish](https://img.shields.io/github/actions/workflow/status/bkaewell/cloudflare-verified-ddns/docker-publish.yaml?label=docker%20publish)](https://github.com/bkaewell/cloudflare-verified-ddns/actions/workflows/docker-publish.yaml)
 [![GHCR](https://img.shields.io/badge/ghcr-image-blue)](https://ghcr.io/bkaewell/cloudflare-verified-ddns)
+![CI](https://github.com/bkaewell/cloudflare-verified-ddns/actions/workflows/ci.yaml/badge.svg)
+
 
 **Why this exists - and why better matters**  
 Residential ISPs change your IP frequently. CGNAT blocks inbound connections. Paths drop for seconds or minutes. Cloudflare [rate-limits](https://developers.cloudflare.com/fundamentals/api/reference/limits/) reckless API callers.
