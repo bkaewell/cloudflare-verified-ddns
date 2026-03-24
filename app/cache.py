@@ -44,7 +44,7 @@ class Uptime:
         return (self.up / self.total * 100) if self.total > 0 else 0.0
 
     def __str__(self) -> str:
-        return f"{self.percentage:.2f}% ({self.up}/{self.total})"
+        return f"{self.percentage:.2f}%"
 
 class PersistentCache:
     """
