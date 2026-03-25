@@ -1,9 +1,9 @@
-# --- Standard library imports ---
+# ─── Standard library imports ───
 import sys
 import logging
 
 
-# --- Format configuration constants ---
+# ─── Format configuration constants ───
 LOG_LEVEL_EMOJIS = {
     logging.DEBUG: "🧱",
     logging.INFO: "🟢",
@@ -17,42 +17,39 @@ LEVEL_NAME_MAP = {
     "CRITICAL": "FATAL",
 }
 
-# --- Formatters ---
-class EmojiFormatter(logging.Formatter):
+# ─── Formatters ───
+class StatusFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         """
-        Formatter that prepends an emoji per 
-        log level and shortens log level names.
+        Formatter that adds elapsed time, prepends an emoji per
+        log level, and shortens selected level names.
         """
+        record.elapsed_s = record.relativeCreated / 1000.0
         record.levelemoji = LOG_LEVEL_EMOJIS.get(record.levelno, "")
         record.levelname = LEVEL_NAME_MAP.get(record.levelname, record.levelname)
         return super().format(record)
-
-# --- Public logging setup API ---
+        
+# ─── Public logging setup API ───
 def setup_logging(level=logging.INFO) -> None:
     """
-    Configure global logging with emoji decorations and optional TIMING logs.
+    Configure global logging with emoji decorations and elapsed time.
     """
     root = logging.getLogger()
     root.setLevel(level)
     root.handlers.clear()
 
     handler = logging.StreamHandler(sys.stdout)
-    formatter = EmojiFormatter(
-        #fmt="%(asctime)s [%(levelname)s] %(levelemoji)s %(name)s:%(funcName)s:%(lineno)d → %(message)s",
-        #datefmt="%Y-%m-%d %H:%M:%S",
-        fmt="%(asctime)s %(levelemoji)s %(name)s:%(funcName)s → %(message)s",
-        datefmt="%H:%M:%S",
+
+    formatter = StatusFormatter(
+        fmt="%(asctime)s  T+%(elapsed_s).0fs  %(levelemoji)s %(message)s", 
+        datefmt="%Y-%m-%d %H:%M:%S", 
     )
     handler.setFormatter(formatter)
 
-    # Apply optional filter
-    # handler.addFilter()
     root.addHandler(handler)
 
 def get_logger(name: str) -> logging.Logger:
     """
     Return a namespaced logger for any module.
     """
-    #return logging.getLogger(f"cloudflare_verified_ddns.{name}") # w/ namespace (cloudflare_verified_ddns)
     return logging.getLogger(f"{name}")
