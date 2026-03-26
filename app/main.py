@@ -2,11 +2,9 @@
 import sys
 import time
 import logging
-from enum import Enum, auto
 
 # ─── Project imports ───
 from app.config import config
-from app.telemetry import tlog
 from app.cache import PersistentCache
 from app.ddns_controller import DDNSController
 from app.logger import get_logger, setup_logging
@@ -14,26 +12,6 @@ from app.cloudflare import CloudflareDNSProvider
 from app.scheduling_policy import SchedulingPolicy
 from app.readiness import ReadinessController
 
-
-class SupervisorState(Enum):
-    """
-    Health of a single supervisor loop iteration.
-
-    • OK    — cycle completed without error
-    • ERROR — unhandled exception occurred
-
-    Used for telemetry only; does not control scheduling or recovery.
-    """
-    OK = auto()
-    ERROR = auto()
-
-    def __str__(self) -> str:
-        return self.name
-
-SUPERVISOR_EMOJI = {
-    SupervisorState.OK:    "💚",
-    SupervisorState.ERROR: "💣",
-}
 
 def run_supervisor_loop(
         scheduler: SchedulingPolicy,
@@ -50,7 +28,6 @@ def run_supervisor_loop(
 
     Notes:
     • This loop never exits
-    • Exceptions are contained and surfaced via telemetry
     • Scheduling is adaptive to avoid API abuse and tight loops
     """
 
@@ -60,13 +37,11 @@ def run_supervisor_loop(
     while True:
 
         start = time.monotonic()
-        supervisor_state = SupervisorState.OK
 
         try:
             ddns.run_cycle()
         except Exception as e:
             logger.exception(f"Unhandled exception during run_control_cycle: {e}")
-            supervisor_state = SupervisorState.ERROR
 
         # Adaptive Polling Engine (APE): compute next poll interval
         elapsed = time.monotonic() - start
@@ -74,21 +49,13 @@ def run_supervisor_loop(
             elapsed=elapsed, 
             readiness=ddns.readiness.state
         )
-
-        if supervisor_state == SupervisorState.ERROR:
-            tlog(
-                SUPERVISOR_EMOJI[supervisor_state], 
-                "SUPERVISOR", 
-                supervisor_state.name, 
-                primary="observer failure"
-            )
-
-        tlog(
-            "🐾",
-            "SCHEDULER",
-            "CADENCE",
-            primary=str(decision.poll_speed),
-            meta=f"sleep={decision.sleep_for:.0f}s | jitter={decision.jitter:.0f}s\n"
+        logger.debug(
+            "Readiness=%s | cadence=%s | elapsed=%.0fms | sleep=%.0fs | jitter=%.0fs",
+            ddns.readiness.state.name,
+            decision.poll_speed,
+            elapsed * 1000,
+            decision.sleep_for,
+            decision.jitter,
         )
 
         time.sleep(decision.sleep_for)
@@ -109,7 +76,7 @@ def main() -> None:
     setup_logging(level=getattr(logging, config.LOG_LEVEL))
     logger = get_logger("main")
 
-    logger.info("🚀 Starting Cloudflare DDNS Agent")
+    logger.info("🚀 Starting Cloudflare Verified DDNS Application")
     logger.debug(f"Python version: {sys.version}")
 
     # def validate_config() -> None:
@@ -151,7 +118,7 @@ def main() -> None:
         cache=cache,
     )
 
-    logger.info("Entering supervisor loop...\n")
+    logger.info("Entering supervisor loop...")
     run_supervisor_loop(scheduler, ddns)
 
 if __name__ == "__main__":
