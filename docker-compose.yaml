@@ -12,6 +12,7 @@ services:
       TZ: America/New_York
       CYCLE_INTERVAL_S: 60
       LOG_LEVEL: INFO
+      LOG_FORMAT: console
       ROUTER_IP: "192.168.0.1"
       CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:?required}
       CLOUDFLARE_ZONE_ID: ${CLOUDFLARE_ZONE_ID:?required}

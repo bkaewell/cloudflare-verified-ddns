@@ -63,6 +63,9 @@ class Config:
     # Global log level for agent runtime
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO").upper()
 
+    # Runtime log format: console | json | both
+    LOG_FORMAT: str = os.getenv("LOG_FORMAT", "console").lower()
+
     # Cloudflare endpoints
     Cloudflare: CloudflareConfig = field(default_factory=CloudflareConfig)
 
