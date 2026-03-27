@@ -8,8 +8,8 @@ from datetime import datetime
 LOG_LEVEL_EMOJIS = {
     logging.DEBUG: "🧱",
     logging.INFO: "🟢",
-    logging.WARNING: "⚠️ ",
-    logging.ERROR: "❌",
+    logging.WARNING: "🟠",
+    logging.ERROR: "🔴",
     logging.CRITICAL: "💣",
 }
 

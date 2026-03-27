@@ -1,12 +1,11 @@
 # ─── Standard library imports ───
-import time
 from typing import Optional
 
 # ─── Project imports ───
-from .telemetry import tlog
+from .logger import get_logger
 from .cache import PersistentCache
 from .cloudflare import CloudflareDNSProvider
-from .readiness import ReadinessState, READINESS_EMOJI
+from .readiness import ReadinessState
 from .utils import (
     ping_host, 
     verify_wan_reachability, 
@@ -67,7 +66,8 @@ class DDNSController:
         # ─── Metrics & Long-Lived Counters ───
         self.cache = cache
         self.uptime = cache.load_uptime()
-        self.loop = 1
+        self.logger = get_logger("ddns")
+        self.ready_confirmation_announced = False
 
     def _record_ip_observation(self, public_ip: Optional[str]) -> bool:
         """
@@ -112,13 +112,13 @@ class DDNSController:
                 f"{DDNSController.PROMOTION_CONFIRMATIONS_REQUIRED}"
             )
 
-        tlog(
-            READINESS_EMOJI[current],
-            "READINESS",
-            "CHANGE",
-            primary=transition,
-            meta=" | ".join(meta) if meta else None,
-        )
+        # tlog(
+        #     READINESS_EMOJI[current],
+        #     "READINESS",
+        #     "CHANGE",
+        #     primary=transition,
+        #     meta=" | ".join(meta) if meta else None,
+        # )
 
         # ─── Future Work ───
         # Send notification via 3rd party messaging app
@@ -155,58 +155,120 @@ class DDNSController:
         else:
             cache_state = "HIT"
 
-        tlog(
-            {
-                "HIT": "🟢",
-                "MISMATCH": "🟡",
-                "EXPIRED": "🟠",
-                "MISS": "🔴",
-            }[cache_state],
-            "CACHE",
-            cache_state,
-            primary=f"age={cache.age_s:.0f}s" if cache_hit else "no cache",
-            meta=(
-                f"rtt={cache.elapsed_ms:.1f}ms"
-            ) if cache_hit else None,
-        )
+        # tlog(
+        #     {
+        #         "HIT": "🟢",
+        #         "MISMATCH": "🟡",
+        #         "EXPIRED": "🟠",
+        #         "MISS": "🔴",
+        #     }[cache_state],
+        #     "CACHE",
+        #     cache_state,
+        #     primary=f"age={cache.age_s:.0f}s" if cache_hit else "no cache",
+        #     meta=(
+        #         f"rtt={cache.elapsed_ms:.1f}ms"
+        #     ) if cache_hit else None,
+        # )
+
+
+
+        # if cache_state == "EXPIRED":
+        #     self.logger.info(
+        #         "DNS cache expired: age=%.0fs (ttl=%ss); refreshing authoritative state",
+        #         cache.age_s,
+        #         self.max_cache_age_s,
+        #     )
+        # elif cache_state == "MISMATCH":
+        #     self.logger.warning(
+        #         "DNS cache mismatch: cached_ip=%s desired_ip=%s; verifying authoritative state",
+        #         cache.ip,
+        #         public_ip,
+        #     )
+        # elif cache_state == "MISS":
+        #     self.logger.debug("DNS cache miss: no cached Cloudflare IP found")
+
+
 
         if cache_match:
-            tlog("🌐", "DDNS", "NO-OP", primary="cache=hit")
+            self.logger.debug(
+                "DDNS reconcile no-op: cache=%s age=%.0fs rtt=%.1fms",
+                cache_state,
+                cache.age_s,
+                cache.elapsed_ms,
+            )
             return  # Fast no-op: we trust the cache = DNS = current IP
 
         # ─── L2 Authoritative DoH lookup ───
         doh = doh_lookup(self.dns_provider.dns_name)
 
         if doh.success and doh.ip == public_ip:
-            tlog(
-                "🟢",
-                "DNS",
-                "VERIFIED",
-                primary=f"ip={doh.ip}",
-                meta=f"rtt={doh.elapsed_ms:.0f}ms"
-            )
+            # tlog(
+            #     "🟢",
+            #     "DNS",
+            #     "VERIFIED",
+            #     primary=f"ip={doh.ip}",
+            #     meta=f"rtt={doh.elapsed_ms:.0f}ms"
+            # )
             self.cache.store_cloudflare_ip(public_ip)
-            tlog("🟢", "CACHE", "REFRESHED", primary=f"ttl={self.max_cache_age_s}s")
-            tlog("🌐", "DDNS", "NO-OP", primary="doh=verified")
+            # tlog("🟢", "CACHE", "REFRESHED", primary=f"ttl={self.max_cache_age_s}s")
+            # tlog("🌐", "DDNS", "NO-OP", primary="doh=verified")
+
+            status = (
+                "cache-refreshed-after-expiry"
+                if cache_state == "EXPIRED"
+                else "no-op(doh-verified)"
+            )
+            if cache_state == "EXPIRED":
+                self.logger.warning(
+                    "DDNS summary: status=%s | cache=%s rtt(cache=%.1fms,doh=%.0fms)",
+                    status,
+                    cache_state,
+                    cache.elapsed_ms,
+                    doh.elapsed_ms,
+                )
+            else:
+                self.logger.debug(
+                    "DDNS reconcile no-op: %s | cache=%s rtt(cache=%.1fms,doh=%.0fms)",
+                    status,
+                    cache_state,
+                    cache.elapsed_ms,
+                    doh.elapsed_ms,
+                )
+
             return
+
+        if not doh.success:
+            self.logger.warning(
+                "DDNS verify warning: DoH lookup failed, applying direct DNS update | dns=%s | cache=%s",
+                self.dns_provider.dns_name,
+                cache_state,
+            )
+
 
         # ─── L3 Targeted update required (mutation) ───
         _, elapsed_ms = self.dns_provider.update_dns(public_ip)
         self.cache.store_cloudflare_ip(public_ip)
 
-        meta=[]
-        meta.append(f"rtt={elapsed_ms:.0f}ms")
-        meta.append(f"desired={public_ip}")
-        meta.append(f"ttl={self.dns_provider.ttl}s")
-        tlog(
-            "🟢",
-            "CLOUDFLARE",
-            "UPDATED",
-            primary=f"dns={self.dns_provider.dns_name}",
-            meta=" | ".join(meta)
+        # meta=[]
+        # meta.append(f"rtt={elapsed_ms:.0f}ms")
+        # meta.append(f"desired={public_ip}")
+        # meta.append(f"ttl={self.dns_provider.ttl}s")
+        # tlog(
+        #     "🟢",
+        #     "CLOUDFLARE",
+        #     "UPDATED",
+        #     primary=f"dns={self.dns_provider.dns_name}",
+        #     meta=" | ".join(meta)
+        # )
+        # tlog("🟢", "CACHE", "REFRESHED", primary=f"ttl={self.max_cache_age_s}s")
+        # tlog("🌐", "DDNS", "PUBLISHED", primary="reason=ip-mismatch")
+
+        self.logger.info(
+            "DDNS summary: status=updated | cache=%s rtt(update=%.0fms,cache=%.1fms)",
+            cache_state,
+            elapsed_ms,
+            cache.elapsed_ms,
         )
-        tlog("🟢", "CACHE", "REFRESHED", primary=f"ttl={self.max_cache_age_s}s")
-        tlog("🌐", "DDNS", "PUBLISHED", primary="reason=ip-mismatch")
 
     def _tick_uptime(self, readiness: ReadinessState) -> None:
         """
@@ -230,34 +292,32 @@ class DDNSController:
         Phases:
         1. Observe raw network signals
         2. Assess readiness (FSM)
-        3. Emit an authoritative verdict
-        4. Perform READY-only side effects (DDNS)
-        5. Loop telemetry
+        3. Perform READY-only side effects (DDNS)
+        4. Emit cycle summary and diagnostics
         """
-        start = time.monotonic()
-        heartbeat = heartbeat = time.strftime("%a %b %d %Y")
-        tlog("🔁", "LOOP", "START", primary=heartbeat, meta=f"loop={self.loop}")
 
         # ─── Observe: raw signals only ───
         # LAN (weak signal; informational only)
         lan = ping_host(self.router_ip)
-        tlog(
-            "🟢" if lan.success else "🔴",
-            "ROUTER",
-            "UP" if lan.success else "DOWN",
-            primary=f"ip={self.router_ip}",
-            meta=f"rtt={lan.elapsed_ms:.0f}ms"
-        )
+
+        if not lan.success:
+            self.logger.error(
+                "L1/L2 LAN probe failed: gateway ICMP unreachable; " \
+                "local link or router path may be unstable | " \
+                "router=%s | rtt=%.0fms",
+                self.router_ip,
+                lan.elapsed_ms,
+            )
 
         # WAN path reachability (strong signal; feeds Network Health FSM)
         wan = verify_wan_reachability(host="1.1.1.1", port=443)
-        tlog(
-            "🟢" if wan.success else "🔴",
-            "WAN_PATH",
-            "UP" if wan.success else "DOWN",
-            primary="dest=1.1.1.1:443",
-            meta=f"rtt={wan.elapsed_ms:.0f}ms" + (" | tls=ok" if wan.success else ""),
-        )
+
+        if not wan.success:
+            self.logger.error(
+                "L3/L4 WAN probe failed: no transport path to 1.1.1.1:443; " \
+                "TLS/session verification cannot proceed | rtt=%.0fms",
+                wan.elapsed_ms,
+            )
 
         public = None
         allow_promotion = False
@@ -274,20 +334,16 @@ class DDNSController:
         if can_observe_public_ip:
             public = get_ip()
 
-            tlog(
-                "🟢" if public.success else "🔴",
-                "PUBLIC_IP",
-                "OK" if public.success else "FAIL",
-                primary=f"ip={public.ip}",
-                meta=f"rtt={public.elapsed_ms:.0f}ms"
-            )
+            if not public.success:
+                self.logger.error(
+                    "L7 public IP probe failed: unable to fetch a valid " \
+                    "public IP from the external IP service | rtt=%.0fms",
+                    public.elapsed_ms,
+                )
 
             if public.success and in_promotion_window:
                 allow_promotion = self._record_ip_observation(public.ip)
 
-        else:
-            tlog("🟡", "PUBLIC_IP", "SKIPPED")
-        
 
         # ─── Assess: (FSM = single source of truth) ───
         prev = self.readiness.state
@@ -304,29 +360,6 @@ class DDNSController:
                 promotion_votes=self.promotion_votes,
             ) 
 
-        # ─── Verdict: authoritative ───
-        verdict_primary = None
-        verdict_meta = None
-
-        if current == ReadinessState.PROBING:
-            verdict_primary = "gate=HOLD"
-            verdict_meta = (
-                "awaiting confirmation"
-                if self.promotion_votes == 0
-                else (
-                    f"confirmations={self.promotion_votes}/"
-                    f"{DDNSController.PROMOTION_CONFIRMATIONS_REQUIRED}"
-                )
-            )
-
-        tlog(
-            READINESS_EMOJI[current],
-            "VERDICT",
-            current.name,
-            primary=verdict_primary,
-            meta=verdict_meta,
-        )
-
         entering_not_ready = (
             prev != ReadinessState.NOT_READY
             and current == ReadinessState.NOT_READY
@@ -337,31 +370,44 @@ class DDNSController:
             # (no promotion carryover, no stale IP stability).
             self.promotion_votes = 0
             self.last_public_ip = None
+            self.ready_confirmation_announced = False
 
 
         # ─── Act: READY-only side effects ───
-        if current == ReadinessState.READY and public.ip:
-            if not lan.success:
-                tlog(
-                    "🟡",
-                    "ROUTER",
-                    "FLAKY",
-                    primary="ICMP unreliable",
-                    meta="WAN confirmed healthy"
-                )
-
+        if current == ReadinessState.READY and public and public.ip:
             # DDNS reconciliation (safe to act)
-            #if public and public.success:
             self._reconcile_dns_if_needed(public.ip)
         
         self._tick_uptime(current)
 
-        elapsed_ms = (time.monotonic() - start) * 1000
-        tlog(
-            "🔁",
-            "LOOP",
-            "COMPLETE",
-            meta=f"loop={elapsed_ms:.0f}ms | uptime={self.uptime}"
-        )
+        # ─── Report: Emit telemetry ───
+        required = DDNSController.PROMOTION_CONFIRMATIONS_REQUIRED
+        if current == ReadinessState.PROBING:
+            readiness_label = f"Verifying IP ... confirmations={self.promotion_votes}/{required}"
+            self.ready_confirmation_announced = False
+        elif current == ReadinessState.READY:
+            confirmations = min(self.promotion_votes, required)
+            if not self.ready_confirmation_announced:
+                readiness_label = f"Verified DNS ✓ confirmations={confirmations}/{required}"
+                self.ready_confirmation_announced = True
+            else:
+                readiness_label = "Verified DNS ✓"
+        elif current == ReadinessState.NOT_READY:
+            readiness_label = "Offline ✗"
+            self.ready_confirmation_announced = False
+        else:
+            readiness_label = "Initializing ..."
+            self.ready_confirmation_announced = False
 
-        self.loop += 1
+        public_ip_summary = public.ip if public and public.success else "unknown"
+        if current == ReadinessState.PROBING:
+            target_summary = f"ip={public_ip_summary}"
+        else:
+            target_summary = f"{self.dns_provider.dns_name} → {public_ip_summary}"
+
+        self.logger.info(
+            "Summary: %s | %s | uptime=%s",
+            readiness_label,
+            target_summary,
+            self.uptime,
+        )
