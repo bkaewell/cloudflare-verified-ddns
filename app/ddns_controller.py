@@ -9,6 +9,7 @@ from .readiness import ReadinessState
 from .utils import (
     ping_host, 
     verify_wan_reachability, 
+    IPResolutionResult,   # TEST HOOK
     get_ip, doh_lookup
 )
 
@@ -68,6 +69,14 @@ class DDNSController:
         self.uptime = cache.load_uptime()
         self.logger = get_logger("ddns")
         self.ready_confirmation_announced = False
+
+
+
+        ##################
+        # TEST HOOK
+        ##################
+        self.count = 0
+        self.flag = True
 
     def _record_ip_observation(self, public_ip: Optional[str]) -> bool:
         """
@@ -143,98 +152,64 @@ class DDNSController:
         # Only proceed to DoH if cache is absent, stale, or mismatched
         cache = self.cache.load_cloudflare_ip()
         cache_hit = cache.hit
-        cache_fresh = cache_hit and (cache.age_s <= self.max_cache_age_s)
-        cache_match = cache_fresh and (cache.ip == public_ip)
+        #cache_fresh = cache_hit and (cache.age_s <= self.max_cache_age_s)
+        #cache_match = cache_fresh and (cache.ip == public_ip)
+
+        cache_age_s = cache.age_s if cache.hit and cache.age_s is not None else 0
+        cache_fresh = cache_hit and (cache_age_s <= self.max_cache_age_s)
+
 
         if not cache_hit:
             cache_state = "MISS"
         elif not cache_fresh:
             cache_state = "EXPIRED"
-        elif not cache_match:
+        elif cache.ip != public_ip:
             cache_state = "MISMATCH"
         else:
             cache_state = "HIT"
 
-        # tlog(
-        #     {
-        #         "HIT": "🟢",
-        #         "MISMATCH": "🟡",
-        #         "EXPIRED": "🟠",
-        #         "MISS": "🔴",
-        #     }[cache_state],
-        #     "CACHE",
-        #     cache_state,
-        #     primary=f"age={cache.age_s:.0f}s" if cache_hit else "no cache",
-        #     meta=(
-        #         f"rtt={cache.elapsed_ms:.1f}ms"
-        #     ) if cache_hit else None,
-        # )
 
-
-
-        # if cache_state == "EXPIRED":
-        #     self.logger.info(
-        #         "DNS cache expired: age=%.0fs (ttl=%ss); refreshing authoritative state",
-        #         cache.age_s,
-        #         self.max_cache_age_s,
-        #     )
-        # elif cache_state == "MISMATCH":
-        #     self.logger.warning(
-        #         "DNS cache mismatch: cached_ip=%s desired_ip=%s; verifying authoritative state",
-        #         cache.ip,
-        #         public_ip,
-        #     )
-        # elif cache_state == "MISS":
-        #     self.logger.debug("DNS cache miss: no cached Cloudflare IP found")
-
-
-
-        if cache_match:
+        if cache_state == "HIT":
             self.logger.debug(
                 "DDNS reconcile no-op: cache=%s age=%.0fs rtt=%.1fms",
                 cache_state,
-                cache.age_s,
+                cache_age_s,
                 cache.elapsed_ms,
             )
-            return  # Fast no-op: we trust the cache = DNS = current IP
+            #return DDNSController.DNSReconcileState.VERIFIED
+            return   # Fast no-op: we trust the cache = DNS = current IP
+        
+        elif cache_state == "EXPIRED":
+            self.logger.warning(
+                "DDNS cache IP expired (age=%.0fs > max=%ss); refreshing to %s",
+                cache_age_s,
+                self.max_cache_age_s,
+                public_ip,
+            )
+        else:
+            self.logger.debug(
+                "DDNS cache requires verification: state=%s cached_ip=%s new_ip=%s age=%.0fs max_age=%ss",
+                cache_state,
+                cache.ip,
+                public_ip,
+                cache_age_s,
+                self.max_cache_age_s,
+            )
 
         # ─── L2 Authoritative DoH lookup ───
         doh = doh_lookup(self.dns_provider.dns_name)
 
         if doh.success and doh.ip == public_ip:
-            # tlog(
-            #     "🟢",
-            #     "DNS",
-            #     "VERIFIED",
-            #     primary=f"ip={doh.ip}",
-            #     meta=f"rtt={doh.elapsed_ms:.0f}ms"
-            # )
             self.cache.store_cloudflare_ip(public_ip)
-            # tlog("🟢", "CACHE", "REFRESHED", primary=f"ttl={self.max_cache_age_s}s")
-            # tlog("🌐", "DDNS", "NO-OP", primary="doh=verified")
 
-            status = (
-                "cache-refreshed-after-expiry"
-                if cache_state == "EXPIRED"
-                else "no-op(doh-verified)"
+            self.logger.debug(
+                "DDNS reconcile no-op: status=doh-verified cache=%s rtt(cache=%.1fms,doh=%.0fms)",
+                cache_state,
+                cache.elapsed_ms,
+                doh.elapsed_ms,
             )
-            if cache_state == "EXPIRED":
-                self.logger.warning(
-                    "DDNS summary: status=%s | cache=%s rtt(cache=%.1fms,doh=%.0fms)",
-                    status,
-                    cache_state,
-                    cache.elapsed_ms,
-                    doh.elapsed_ms,
-                )
-            else:
-                self.logger.debug(
-                    "DDNS reconcile no-op: %s | cache=%s rtt(cache=%.1fms,doh=%.0fms)",
-                    status,
-                    cache_state,
-                    cache.elapsed_ms,
-                    doh.elapsed_ms,
-                )
 
+            #return DDNSController.DNSReconcileState.VERIFIED
             return
 
         if not doh.success:
@@ -249,26 +224,18 @@ class DDNSController:
         _, elapsed_ms = self.dns_provider.update_dns(public_ip)
         self.cache.store_cloudflare_ip(public_ip)
 
-        # meta=[]
-        # meta.append(f"rtt={elapsed_ms:.0f}ms")
-        # meta.append(f"desired={public_ip}")
-        # meta.append(f"ttl={self.dns_provider.ttl}s")
-        # tlog(
-        #     "🟢",
-        #     "CLOUDFLARE",
-        #     "UPDATED",
-        #     primary=f"dns={self.dns_provider.dns_name}",
-        #     meta=" | ".join(meta)
-        # )
-        # tlog("🟢", "CACHE", "REFRESHED", primary=f"ttl={self.max_cache_age_s}s")
-        # tlog("🌐", "DDNS", "PUBLISHED", primary="reason=ip-mismatch")
+        previous_ip = cache.ip if cache.ip else "unknown"
+        ip_change = f"{previous_ip} → {public_ip}"
 
         self.logger.info(
-            "DDNS summary: status=updated | cache=%s rtt(update=%.0fms,cache=%.1fms)",
-            cache_state,
+            #"🌐 DNS updated: %s | verify=next-cycle | rtt=%.0fms",
+            "🌐 DNS updated: %s | rtt=%.0fms",
+            ip_change,
             elapsed_ms,
-            cache.elapsed_ms,
         )
+
+    #T+54980s  🟢 Summary: Verified DNS ✓ | vpn.test.cadencecloud.io → 100.34.48.169 | uptime=98.37%
+
 
     def _tick_uptime(self, readiness: ReadinessState) -> None:
         """
@@ -284,6 +251,42 @@ class DDNSController:
         #     self.cache.store_uptime(self.uptime)
 
         self.cache.store_uptime(self.uptime)
+
+
+
+    #********************************
+    #********************************
+    #********************************
+    #********************************
+    #********************************
+    def _override_public_ip_for_test(
+        self,
+        public: IPResolutionResult,
+    ) -> IPResolutionResult:
+        
+        if self.count % 3 == 0:
+            self.flag = not self.flag
+        
+        if self.flag:
+            return IPResolutionResult(
+                ip="192.168.0.77",
+                elapsed_ms=public.elapsed_ms,
+                attempts=public.attempts,
+                max_attempts=4,
+                success=True,
+            )
+            ip: str | None
+
+        return public
+
+    #********************************
+    #********************************
+    #********************************
+    #********************************
+    #********************************
+
+
+
 
     def run_cycle(self) -> None:
         """
@@ -333,6 +336,15 @@ class DDNSController:
 
         if can_observe_public_ip:
             public = get_ip()
+
+
+
+
+            #public = self._override_public_ip_for_test(public)  # TEST HOOK
+            #self.count += 1
+
+
+
 
             if not public.success:
                 self.logger.error(
@@ -411,3 +423,6 @@ class DDNSController:
             target_summary,
             self.uptime,
         )
+
+
+
