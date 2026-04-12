@@ -68,15 +68,8 @@ docker logs -f cloudflare-verified-ddns
 Typical output when healthy:
 
 ```console
-23:02:39 🔁 LOOP        START      Tue Mar 03 2026    | loop=1
-23:02:39 🟢 ROUTER      UP         ip=192.168.0.1     | rtt=11ms
-23:02:39 🟢 WAN_PATH    UP         dest=1.1.1.1:443   | rtt=69ms | tls=ok
-23:02:39 🟢 PUBLIC_IP   OK         ip=x.x.x.x         | rtt=92ms
-23:02:39 💚 VERDICT     READY      —————————                  
-23:02:39 🟢 CACHE       HIT        age=743s           | rtt=2.1ms
-23:02:39 🌐 DDNS        NO-OP      cache=hit                     
-23:02:39 🔁 LOOP        COMPLETE   —————————          | loop=181ms | uptime=99.15% (8597/8671)
-23:02:39 🐾 SCHEDULER   CADENCE    SLOW_POLL          | sleep=123s | jitter=3s
+2026-03-31 17:51:40  T+100s  🟢 Summary: Verified DNS ✓ | my.dns.com → XXX.XX.XX.XX | uptime=99.99%
+2026-03-31 17:53:40  T+220s  🟢 Summary: Verified DNS ✓ | my.dns.com → XXX.XX.XX.XX | uptime=99.99%
 ```
 
 **Other ways to run it**
