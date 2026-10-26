@@ -31,11 +31,11 @@ class DDNSController:
     # ─── Class Constants ───
     # consecutive stable IPs required for READY
     PROMOTION_CONFIRMATIONS_REQUIRED: int = 2
-
     def __init__(
             self,
             *,
             router_ip: str, 
+            cycle_interval_s: int,    #NEW
             max_cache_age_s: str,
             readiness: ReadinessState,
             dns_provider: CloudflareDNSProvider, 
@@ -58,6 +58,7 @@ class DDNSController:
         self.router_ip = router_ip
 
         # ─── Policy & Control Parameters ─── 
+        self.cycle_interval_s = cycle_interval_s
         self.max_cache_age_s = max_cache_age_s
 
         # ─── Promotion / Stability Tracking (Probation Logic) ───         
@@ -133,6 +134,25 @@ class DDNSController:
         # Send notification via 3rd party messaging app
         #  - Telegram's @BotFather API 
 
+
+
+
+# I just had an idea.. what if we make _reconcile_dns_if_needed(...) 
+# a bool or a 3 state system (true, false, maybe) where cache and doh 
+# return true if conditions are met to verify the DNS, then if we detect 
+# an IP change, then we return that in between state..where everything 
+# is probably OK but lets just be safe and say we just updated the DNS, 
+# we now due to TTL of Cloudflare, it takes time to verify and push out 
+# to the world so let's just keep that in mind and we actually verify 
+# on the next cycle..
+
+
+
+
+
+
+
+
     def _reconcile_dns_if_needed(self, public_ip: str) -> None:
         """
         Reconcile Cloudflare DNS with the current public IP.
@@ -146,18 +166,27 @@ class DDNSController:
         • L1: local cache (cheap no-op)
         • L2: DoH verification (truth without mutation)
         • L3: targeted update (only on confirmed drift)
+
         """
 
         # ─── L1 Local Cache (Cheap, fast no-op) ───
-        # Only proceed to DoH if cache is absent, stale, or mismatched
+        # Only proceed to DoH if cache is absent, stale, or mismatched.
         cache = self.cache.load_cloudflare_ip()
         cache_hit = cache.hit
-        #cache_fresh = cache_hit and (cache.age_s <= self.max_cache_age_s)
-        #cache_match = cache_fresh and (cache.ip == public_ip)
-
         cache_age_s = cache.age_s if cache.hit and cache.age_s is not None else 0
         cache_fresh = cache_hit and (cache_age_s <= self.max_cache_age_s)
 
+
+        # I think I want to be consistent with the consecutive IP confirmations... 
+        # rather than re-invent the wheel here with complex logic, maybe instead of just
+        # casually treating an IP change during a stable state to just kick out of this loop
+        # and go thru like the init pending process again re-using that logic that is already
+        # in place in the main supervisor loop? Since this function is only called when the
+        # state is READY, but i am making a new rule to say, no, this is not ready yet.. lets
+        # kick back to pending and most of the time the IP changes when the router reboots so we 
+        # are already in an initialized/pending state (i.e. not ready state) anyway...
+        # 
+        #cache_super_fresh = cache_hit and (cache_age_s < self.cycle_interval_s) #NEW
 
         if not cache_hit:
             cache_state = "MISS"
@@ -165,6 +194,8 @@ class DDNSController:
             cache_state = "EXPIRED"
         elif cache.ip != public_ip:
             cache_state = "MISMATCH"
+        #elif cache_super_fresh:        #NEW
+        #    cache_state = "WARMUP"     #NEW
         else:
             cache_state = "HIT"
 
@@ -176,25 +207,54 @@ class DDNSController:
                 cache_age_s,
                 cache.elapsed_ms,
             )
-            #return DDNSController.DNSReconcileState.VERIFIED
             return   # Fast no-op: we trust the cache = DNS = current IP
         
-        elif cache_state == "EXPIRED":
+        # elif cache_state == "WARMUP":     #NEW
+        #     self.logger.info(             #NEW
+        #         "DDNS forcing DoH follow-up during warmup window | age=%.0fs < cycle=%ss",      #NEW
+        #         cache_age_s,              #NEW
+        #         self.cycle_interval_s,    #NEW
+        #     )
+
+        # elif cache_state == "EXPIRED":
+        #     self.logger.warning(
+        #         "DDNS cache IP expired (age=%.0fs > max=%ss); refreshing to %s",
+        #         cache_age_s,
+        #         self.max_cache_age_s,
+        #         public_ip,
+        #     )
+        # else:
+        #     self.logger.debug(
+        #         "DDNS cache requires verification: state=%s cached_ip=%s new_ip=%s age=%.0fs max_age=%ss",
+        #         cache_state,
+        #         cache.ip,
+        #         public_ip,
+        #         cache_age_s,
+        #         self.max_cache_age_s,
+        #     )
+
+
+        if cache_state == "EXPIRED":
             self.logger.warning(
-                "DDNS cache IP expired (age=%.0fs > max=%ss); refreshing to %s",
+                "DDNS cache IP expired; refreshing to %s (age=%.0fs max=%ss)",
+                public_ip,
                 cache_age_s,
                 self.max_cache_age_s,
+            )
+        elif cache_state == "MISMATCH":
+            self.logger.warning(
+                "DDNS cache mismatch; refreshing %s → %s",
+                cache.ip,
                 public_ip,
             )
         else:
-            self.logger.debug(
-                "DDNS cache requires verification: state=%s cached_ip=%s new_ip=%s age=%.0fs max_age=%ss",
-                cache_state,
-                cache.ip,
+            self.logger.warning(
+                "DDNS cache miss; resolving authoritative IP for %s",
                 public_ip,
-                cache_age_s,
-                self.max_cache_age_s,
             )
+        
+
+
 
         # ─── L2 Authoritative DoH lookup ───
         doh = doh_lookup(self.dns_provider.dns_name)
@@ -209,8 +269,11 @@ class DDNSController:
                 doh.elapsed_ms,
             )
 
-            #return DDNSController.DNSReconcileState.VERIFIED
             return
+
+
+
+
 
         if not doh.success:
             self.logger.warning(
@@ -218,19 +281,59 @@ class DDNSController:
                 self.dns_provider.dns_name,
                 cache_state,
             )
+        else:
+            self.logger.debug(
+                "DDNS authoritative mismatch: dns_ip=%s desired_ip=%s; update required",
+                doh.ip,
+                public_ip,
+            )
+
+
+        # if doh.success and doh.ip != public_ip:       #NEW
+        #     self.logger.info(                         #NEW
+        #         "DDNS verify mismatch: observed=%s expected=%s",   #NEW
+        #         doh.ip,       #NEW
+        #         public_ip,    #NEW
+        #     )                 #NEW
+
+
+
+
+
 
 
         # ─── L3 Targeted update required (mutation) ───
-        _, elapsed_ms = self.dns_provider.update_dns(public_ip)
+        try:
+            _, elapsed_ms = self.dns_provider.update_dns(public_ip)
+            #self.cache.store_cloudflare_ip(public_ip)
+
+        except Exception as exc:
+            self.logger.error(
+                "DDNS update failed: dns=%s desired_ip=%s cache=%s error=%s",
+                self.dns_provider.dns_name,
+                public_ip,
+                cache_state,
+                exc,
+            )
+            return
+        
         self.cache.store_cloudflare_ip(public_ip)
+
 
         previous_ip = cache.ip if cache.ip else "unknown"
         ip_change = f"{previous_ip} → {public_ip}"
 
         self.logger.info(
             #"🌐 DNS updated: %s | verify=next-cycle | rtt=%.0fms",
-            "🌐 DNS updated: %s | rtt=%.0fms",
+            #"🌐 DNS updated: %s | rtt=%.0fms",
+            # "🌐 DNS updated: %s | verication=pending | rtt=%.0fms",
+            # ip_change,
+            # elapsed_ms,
+
+            "🌐 DNS updated: %s | host=%s | cache=%s | verify=next-cycle | rtt=%.0fms",
             ip_change,
+            self.dns_provider.dns_name,
+            cache_state,
             elapsed_ms,
         )
 
@@ -241,7 +344,8 @@ class DDNSController:
         """
         Advance uptime counters for the current loop iteration.
         """
-        self.uptime.total += 1
+        if readiness in (ReadinessState.READY, ReadinessState.NOT_READY):
+            self.uptime.total += 1
 
         if readiness == ReadinessState.READY:
             self.uptime.up += 1
@@ -264,7 +368,7 @@ class DDNSController:
         public: IPResolutionResult,
     ) -> IPResolutionResult:
         
-        if self.count % 3 == 0:
+        if self.count % 50 == 0:
             self.flag = not self.flag
         
         if self.flag:
@@ -340,8 +444,8 @@ class DDNSController:
 
 
 
-            #public = self._override_public_ip_for_test(public)  # TEST HOOK
-            #self.count += 1
+            public = self._override_public_ip_for_test(public)  # TEST HOOK
+            self.count += 1
 
 
 
@@ -388,7 +492,45 @@ class DDNSController:
         # ─── Act: READY-only side effects ───
         if current == ReadinessState.READY and public and public.ip:
             # DDNS reconciliation (safe to act)
-            self._reconcile_dns_if_needed(public.ip)
+            # self._reconcile_dns_if_needed(public.ip)
+
+
+
+
+            ########################
+            ########################
+            #### NEW
+            ########################
+            ########################
+            public_ip_changed = (
+                self.last_public_ip is not None
+                and public.ip != self.last_public_ip
+            )
+
+            if public_ip_changed:
+                previous_ip = self.last_public_ip
+                self.last_public_ip = public.ip
+                self.promotion_votes = 1
+                self.ready_confirmation_announced = False
+                self.readiness.reprobe()
+                current = self.readiness.state
+                self.logger.warning(
+                    "WAN IP changed; re-checking stability %s → %s confirmations=%s/%s",
+                    previous_ip,
+                    public.ip,
+                    self.promotion_votes,
+                    DDNSController.PROMOTION_CONFIRMATIONS_REQUIRED,
+                )
+            else:
+                # DDNS reconciliation (safe to act)
+                self._reconcile_dns_if_needed(public.ip)
+            ########################
+            ########################
+            #### NEW
+            ########################
+            ########################
+
+
         
         self._tick_uptime(current)
 
@@ -423,6 +565,3 @@ class DDNSController:
             target_summary,
             self.uptime,
         )
-
-
-

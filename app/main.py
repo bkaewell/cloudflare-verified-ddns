@@ -112,6 +112,7 @@ def main() -> None:
 
     ddns = DDNSController(
         router_ip=config.Hardware.ROUTER_IP,
+        cycle_interval_s=config.CYCLE_INTERVAL_S,
         max_cache_age_s=config.MAX_CACHE_AGE_S,
         readiness=readiness,
         dns_provider=dns_provider,
