@@ -32,8 +32,8 @@ class Uptime:
     """
     Rolling uptime counters from control-loop observations.
 
-    • total — cycles observed
-    • up    — cycles in READY state
+    • total — DNS-stability eligible cycles observed
+    • up    — eligible cycles in READY state
     """
     total: int = 0
     up: int = 0
@@ -44,6 +44,8 @@ class Uptime:
         return (self.up / self.total * 100) if self.total > 0 else 0.0
 
     def __str__(self) -> str:
+        if self.total == 0:
+            return "n/a"
         return f"{self.percentage:.2f}%"
 
 class PersistentCache:

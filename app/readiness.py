@@ -48,6 +48,15 @@ class ReadinessController:
         """
         self.state = ReadinessState.NOT_READY
 
+    def reprobe(self) -> None:
+        """
+        Re-enter the stability-probing window without marking the network down.
+
+        Used when the WAN path is healthy but a new public IP has appeared and
+        must earn READY again before DNS mutation.
+        """
+        self.state = ReadinessState.PROBING
+
     def advance(
             self, 
             wan_path_ok: bool, 

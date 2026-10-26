@@ -18,3 +18,13 @@ def test_readiness_demotes_on_wan_failure():
     controller.advance(wan_path_ok=False, allow_promotion=False)
 
     assert controller.state == ReadinessState.NOT_READY
+
+
+def test_readiness_reprobe_returns_ready_state_to_probing():
+    controller = ReadinessController()
+    controller.advance(wan_path_ok=True, allow_promotion=False)
+    controller.advance(wan_path_ok=True, allow_promotion=True)
+
+    controller.reprobe()
+
+    assert controller.state == ReadinessState.PROBING

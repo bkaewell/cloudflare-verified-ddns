@@ -82,6 +82,7 @@ Typical output when healthy:
 **Other ways to run it**
   - Docker Compose → full example in [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md)  
   - Local development → `uv sync --dev && uv run --env-file .env -m app.main`  
+  - Returning operator/developer runbook → [`docs/OPERATOR-QUICK-START.md`](./docs/OPERATOR-QUICK-START.md)
   - All configuration options → `docs/CONFIGURATION.md` (./docs/CONFIGURATION.md)
 
 **Architecture overview**
