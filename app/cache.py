@@ -146,7 +146,7 @@ class PersistentCache:
                 "observed_at": time.time() if ip is not None else None,
             }
             self.cloudflare_ip_file.write_text(json.dumps(payload, indent=2))
-        except OSError:
+        except OSError as e:
             logger.warning(
                 f"Failed to write Cloudflare IP cache "
                 f"({self.cloudflare_ip_file}): {e}"

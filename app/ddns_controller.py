@@ -5,7 +5,7 @@ from typing import Optional
 from .logger import get_logger
 from .cache import PersistentCache
 from .cloudflare import CloudflareDNSProvider
-from .readiness import ReadinessState
+from .readiness import ReadinessState, ReadinessController
 from .utils import (
     ping_host, 
     verify_wan_reachability, 
@@ -36,8 +36,8 @@ class DDNSController:
             *,
             router_ip: str, 
             cycle_interval_s: int,    #NEW
-            max_cache_age_s: str,
-            readiness: ReadinessState,
+            max_cache_age_s: int,
+            readiness: ReadinessController,
             dns_provider: CloudflareDNSProvider, 
             cache: PersistentCache,
         ):
@@ -153,7 +153,7 @@ class DDNSController:
 
 
 
-    def _reconcile_dns_if_needed(self, public_ip: str) -> None:
+    def _reconcile_dns_if_needed_old(self, public_ip: str) -> None:
         """
         Reconcile Cloudflare DNS with the current public IP.
 
@@ -209,29 +209,6 @@ class DDNSController:
             )
             return   # Fast no-op: we trust the cache = DNS = current IP
         
-        # elif cache_state == "WARMUP":     #NEW
-        #     self.logger.info(             #NEW
-        #         "DDNS forcing DoH follow-up during warmup window | age=%.0fs < cycle=%ss",      #NEW
-        #         cache_age_s,              #NEW
-        #         self.cycle_interval_s,    #NEW
-        #     )
-
-        # elif cache_state == "EXPIRED":
-        #     self.logger.warning(
-        #         "DDNS cache IP expired (age=%.0fs > max=%ss); refreshing to %s",
-        #         cache_age_s,
-        #         self.max_cache_age_s,
-        #         public_ip,
-        #     )
-        # else:
-        #     self.logger.debug(
-        #         "DDNS cache requires verification: state=%s cached_ip=%s new_ip=%s age=%.0fs max_age=%ss",
-        #         cache_state,
-        #         cache.ip,
-        #         public_ip,
-        #         cache_age_s,
-        #         self.max_cache_age_s,
-        #     )
 
 
         if cache_state == "EXPIRED":
@@ -340,6 +317,64 @@ class DDNSController:
     #T+54980s  🟢 Summary: Verified DNS ✓ | vpn.test.cadencecloud.io → 100.34.48.169 | uptime=98.37%
 
 
+    def _reconcile_dns_if_needed(self, public_ip: str) -> None:
+
+        cache = self.cache.load_cloudflare_ip()
+
+        cache_is_fresh = (
+            cache.hit
+            and cache.age_s is not None
+            and cache.age_s <= self.max_cache_age_s
+        )
+
+        if cache_is_fresh and cache.ip == public_ip:
+            self.logger.debug(
+                "DDNS verified by cache: ip=%s age=%.0fs",
+                public_ip,
+                cache.age_s,
+            )
+            return
+
+        if cache.hit and not cache_is_fresh:
+            self.logger.warning(
+                "DDNS cache expired; verifying %s (age=%.0fs)",
+                public_ip,
+                cache.age_s,
+            )
+
+        doh = doh_lookup(self.dns_provider.dns_name)
+
+        if not doh.success:
+            self.logger.warning(
+                "DDNS verification failed; update deferred | dns=%s",
+                self.dns_provider.dns_name,
+            )
+            return
+
+        if doh.ip == public_ip:
+            self.cache.store_cloudflare_ip(public_ip)
+            self.logger.debug(
+                "DDNS verified by DoH: ip=%s rtt=%.0fms",
+                public_ip,
+                doh.elapsed_ms,
+            )
+            return
+
+        _, elapsed_ms = self.dns_provider.update_dns(public_ip)
+        self.cache.store_cloudflare_ip(public_ip)
+
+        self.logger.info(
+            "🌐 DNS updated: %s → %s | host=%s | rtt=%.0fms",
+            doh.ip,
+            public_ip,
+            self.dns_provider.dns_name,
+            elapsed_ms,
+        )
+
+
+
+
+
     def _tick_uptime(self, readiness: ReadinessState) -> None:
         """
         Advance uptime counters for the current loop iteration.
@@ -390,9 +425,135 @@ class DDNSController:
     #********************************
 
 
-
-
     def run_cycle(self) -> None:
+        """
+        Execute one DDNS control-loop cycle.
+
+        Observe LAN, WAN, and public-IP signals; update IP-stability
+        confidence; advance the readiness FSM; and reconcile DNS only
+        after the public IP has earned READY.
+
+        INIT and PROBING are observation-only states. Cloudflare updates
+        are permitted only while READY.
+        """
+
+        # Observe local and upstream reachability
+        # # LAN is diagnostic; WAN determines whether public-IP lookup is safe
+        lan = ping_host(self.router_ip)
+        wan = verify_wan_reachability(host="1.1.1.1", port=443)
+
+        if not lan.success:
+            self.logger.error(
+                "LAN gateway probe failed | router=%s | rtt=%.0fms",
+                self.router_ip,
+                lan.elapsed_ms,
+            )
+
+        if not wan.success:
+            self.logger.error(
+                "WAN probe failed | destination=1.1.1.1:443| rtt=%.0fms",
+                wan.elapsed_ms,
+            )
+
+        # Public-IP lookup requires a verified WAN path
+        public = get_ip() if wan.success else None
+
+        if public and not public.success:
+            self.logger.error(
+                "Public IP lookup failed | rtt=%.0fms",
+                public.elapsed_ms,
+            )
+
+        # TEST HOOK
+        #public = self._override_public_ip_for_test(public)
+        #self.count += 1
+
+        # Convert the probe result into the optional value used by the
+        # stability tracker and readiness FSM
+        public_ip = None
+        if public and public.success:
+            public_ip = public.ip
+
+        previous_ip = self.last_public_ip
+        previous_state = self.readiness.state
+
+        # Every observation updates the same stability tracker
+        # A changed or missing IP resets confidence
+        ip_stable = self._record_ip_observation(public_ip)
+        ip_changed = (
+            previous_ip is not None
+            and public_ip is not None
+            and public_ip != previous_ip
+        )
+
+        # READY must be re-earned when the public IP changes or cannot
+        # be observed. PROBING represents uncertainty, not a WAN outage
+        if previous_state == ReadinessState.READY and (
+            ip_changed or public_ip is None):
+            self.readiness.reprobe()
+
+            if ip_changed:
+                self.logger.warning(
+                    "Public IP changed; verifying stability %s → %s",
+                    previous_ip,
+                    public_ip,
+                )
+
+        # Combine WAN health with IP-stability evidence to advance the FSM
+        self.readiness.advance(
+            wan_path_ok=wan.success,
+            allow_promotion=ip_stable,
+        )
+        current = self.readiness.state
+
+        # DNS mutation is allowed only after the observed IP earns READY
+        if current == ReadinessState.READY and public_ip:
+            self._reconcile_dns_if_needed(public_ip)
+
+        self._tick_uptime(current)
+        #self._log_summary(current, public_ip)   # TODO - implement function
+
+
+        # ─── Report: Emit telemetry ───
+        required = DDNSController.PROMOTION_CONFIRMATIONS_REQUIRED
+
+        if current == ReadinessState.PROBING:
+            readiness_label = f"Verifying IP ... confirmations={self.promotion_votes}/{required}"
+            self.ready_confirmation_announced = False
+
+        elif current == ReadinessState.READY:
+            confirmations = min(self.promotion_votes, required)
+            if not self.ready_confirmation_announced:
+                readiness_label = f"Ready ✓ confirmations={confirmations}/{required}"
+                self.ready_confirmation_announced = True
+            else:
+                readiness_label = "Ready ✓"
+
+        elif current == ReadinessState.NOT_READY:
+            readiness_label = "Offline ✗"
+            self.ready_confirmation_announced = False
+
+        else:
+            readiness_label = "Initializing ..."
+            self.ready_confirmation_announced = False
+
+        #public_ip_summary = public.ip if public and public.success else "unknown"
+        if current == ReadinessState.PROBING:
+            #target_summary = f"ip={public_ip_summary}"
+            target_summary = f"ip={public_ip or 'unknown'}"
+
+        else:
+            target_summary = f"{self.dns_provider.dns_name} → {public_ip or 'unknown'}"
+
+        self.logger.info(
+            "Summary: %s | %s | uptime=%s",
+            readiness_label,
+            target_summary,
+            self.uptime,
+        )
+
+
+    def run_cycle_old(self) -> None:
         """
         Execute one autonomous control-loop cycle.
 
