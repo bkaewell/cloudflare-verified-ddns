@@ -15,6 +15,7 @@ class ReadinessState(Enum):
     • Promotions are monotonic (INIT/NOT_READY → PROBING → READY)
     • Any verified failure forces NOT_READY
     """
+
     INIT = auto()
     PROBING = auto()
     READY = auto()
@@ -23,12 +24,6 @@ class ReadinessState(Enum):
     def __str__(self) -> str:
         return self.name
 
-READINESS_EMOJI = {
-    ReadinessState.INIT:      "⚪",
-    ReadinessState.PROBING:   "🟡",
-    ReadinessState.READY:     "💚",
-    ReadinessState.NOT_READY: "🔴",
-}
 
 class ReadinessController:
     """
@@ -48,11 +43,20 @@ class ReadinessController:
         """
         self.state = ReadinessState.NOT_READY
 
+    def reprobe(self) -> None:
+        """
+        Re-enter the stability-probing window without marking the network down.
+
+        Used when the WAN path is healthy but a new public IP has appeared and
+        must earn READY again before DNS mutation.
+        """
+        self.state = ReadinessState.PROBING
+
     def advance(
-            self, 
-            wan_path_ok: bool, 
-            allow_promotion: bool = True,
-        ) -> None:
+        self,
+        wan_path_ok: bool,
+        allow_promotion: bool = True,
+    ) -> None:
         """
         Advance the readiness FSM by one evaluation cycle.
 
