@@ -32,8 +32,8 @@ class Uptime:
     """
     Rolling uptime counters from control-loop observations.
 
-    • total — cycles observed
-    • up    — cycles in READY state
+    • total — DNS-stability eligible cycles observed
+    • up    — eligible cycles in READY state
     """
     total: int = 0
     up: int = 0
@@ -44,6 +44,8 @@ class Uptime:
         return (self.up / self.total * 100) if self.total > 0 else 0.0
 
     def __str__(self) -> str:
+        if self.total == 0:
+            return "n/a"
         return f"{self.percentage:.2f}%"
 
 class PersistentCache:
@@ -146,7 +148,7 @@ class PersistentCache:
                 "observed_at": time.time() if ip is not None else None,
             }
             self.cloudflare_ip_file.write_text(json.dumps(payload, indent=2))
-        except OSError:
+        except OSError as e:
             logger.warning(
                 f"Failed to write Cloudflare IP cache "
                 f"({self.cloudflare_ip_file}): {e}"

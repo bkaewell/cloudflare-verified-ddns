@@ -22,11 +22,11 @@ The same rules apply:
 - Conserve resources when stable, respond decisively when not  
 - Record everything so you can understand what happened  
 
-Result: **the only open-source Cloudflare DDNS that gates updates on actual readiness, verifies propagation via DoH, and stays quiet when everything is working**.
+Result: **a Cloudflare DDNS client that gates updates on actual readiness, checks public DNS through DoH, and stays quiet when everything is working**.
 
 Key behaviors:
 - **Readiness-gated updates** — only writes to Cloudflare when WAN is healthy and reachable  
-- **DNS-verified reconciliation** — confirms the new record is live via DoH before considering the job done  
+- **DNS-checked reconciliation** — compares the stable public IP with Cloudflare DoH before updating confirmed drift
 - **Cache-first + monotonic loop** — skips unnecessary API calls when local state is fresh and trusted  
 - **Adaptive polling** — fast recovery during problems, long intervals (minutes+) when stable → saves API quota and CPU resources 
 - **Operator-grade telemetry** — detailed, timestamped logs + persistent uptime stats that survive restarts  
@@ -68,20 +68,15 @@ docker logs -f cloudflare-verified-ddns
 Typical output when healthy:
 
 ```console
-23:02:39 🔁 LOOP        START      Tue Mar 03 2026    | loop=1
-23:02:39 🟢 ROUTER      UP         ip=192.168.0.1     | rtt=11ms
-23:02:39 🟢 WAN_PATH    UP         dest=1.1.1.1:443   | rtt=69ms | tls=ok
-23:02:39 🟢 PUBLIC_IP   OK         ip=x.x.x.x         | rtt=92ms
-23:02:39 💚 VERDICT     READY      —————————                  
-23:02:39 🟢 CACHE       HIT        age=743s           | rtt=2.1ms
-23:02:39 🌐 DDNS        NO-OP      cache=hit                     
-23:02:39 🔁 LOOP        COMPLETE   —————————          | loop=181ms | uptime=99.15% (8597/8671)
-23:02:39 🐾 SCHEDULER   CADENCE    SLOW_POLL          | sleep=123s | jitter=3s
+2026-11-14 18:20:00  T+1s   🟢 Status: VERIFYING | public_ip=203.0.113.10 stability=1/2 | uptime=n/a
+2026-11-14 18:20:31  T+32s  🟢 DNS verified | host=vpn.example.com ip=203.0.113.10 source=Cloudflare-DoH rtt=42ms
+2026-11-14 18:20:31  T+32s  🟢 Status: READY | vpn.example.com → 203.0.113.10 | uptime=100.00%
 ```
 
 **Other ways to run it**
   - Docker Compose → full example in [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md)  
   - Local development → `uv sync --dev && uv run --env-file .env -m app.main`  
+  - Returning operator/developer runbook → [`docs/OPERATOR-QUICK-START.md`](./docs/OPERATOR-QUICK-START.md)
   - All configuration options → `docs/CONFIGURATION.md` (./docs/CONFIGURATION.md)
 
 **Architecture overview**
@@ -105,6 +100,22 @@ Core files:
   - `readiness.py` (gatekeeper)
   - `scheduling_policy.py` (cadence)
   - `cache.py` (memory)
+
+**Telemetry terminology**
+
+| Term | Meaning |
+| --- | --- |
+| `STARTING` | No readiness decision has been made yet. |
+| `VERIFYING` | WAN is reachable while consecutive public-IP observations establish stability. |
+| `READY` | WAN is reachable, the public IP is stable, and DNS reconciliation is permitted. |
+| `OFFLINE` | The WAN path is unavailable; DNS updates are blocked. |
+| `DNS trusted` | A fresh local cache matches the stable public IP (`DEBUG`). |
+| `DNS verified` | Cloudflare DoH returned the stable public IP. This is a public resolver check, not a claim that every resolver worldwide has refreshed. |
+| `DNS update accepted` | Cloudflare's API accepted the record update; a later scheduled DoH check confirms public resolution. |
+
+Routine cache and probe details stay at `DEBUG`. Successful public DNS checks,
+record changes, and the periodic status line use `INFO`. Recoverable verification
+failures use `WARNING`; confirmed WAN unavailability uses `ERROR`.
 
 **📚 Documentation**  
   - Getting Started (./docs/GETTING_STARTED.md)  
